@@ -383,8 +383,8 @@ class DaViT(nn.Module):
         img_size=224,
         num_classes=1000,
         global_pool='avg',
-        #features_only = False
-    **kwargs):
+        features_only = False,
+    ):
         super().__init__()
 
         architecture = [[index] * item for index, item in enumerate(depths)]
@@ -399,8 +399,7 @@ class DaViT(nn.Module):
         self.num_features = embed_dims[-1]
         self.drop_rate=drop_rate
         self.grad_checkpointing = False
-        self._features_only = kwargs.get('features_only', False)
-        self.feature_info = []
+        self._features_only = features_only
 
         self.patch_embeds = nn.ModuleList([
             PatchEmbed(patch_size=patch_size if i == 0 else 2,
@@ -443,7 +442,6 @@ class DaViT(nn.Module):
             
             self.main_blocks.add_module(f'block_{block_id}', block)
             
-            self.feature_info += [dict(num_chs=self.embed_dims[block_id], reduction = 2, module=f'block_{block_id}')]
         #self.main_blocks = nn.ModuleList(main_blocks)
         
         '''
