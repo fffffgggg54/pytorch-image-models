@@ -133,7 +133,7 @@ class PatchEmbed(nn.Module):
 
     
     def forward(self, x : Tensor, size: Tuple[int, int]):
-    print(x.shape)
+        print(x.shape)
         H, W = size
         dim = x.dim()
         if dim == 3:
