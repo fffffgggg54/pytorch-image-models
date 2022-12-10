@@ -47,8 +47,8 @@ class SequentialWithSize(nn.Sequential):
 
 class SequentialWithSize(nn.Sequential):
 
-    def __init__(*args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super(SequentialWithSize, self).__init__(*args, **kwargs)
 
     def forward(self, x: Tensor, size: Tuple[int, int]):
         for module in self._modules.values():
