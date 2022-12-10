@@ -503,9 +503,11 @@ class DaViT(nn.Module):
         
         for stage_id in range(self.num_stages):
             stage_drop_rates = dpr[len(attention_types) * sum(depths[:stage_id]):len(attention_types) * sum(depths[:stage_id + 1])]
-
+            
+            in_chs = in_chans if stage_id == 0 else embed_dims[stage_id - 1]
+            
             stage = DaViTStage(
-                in_chans if stage_id == 0 else embed_dims[stage_id - 1],
+                in_chs,
                 embed_dims[stage_id],
                 depth = 1,
                 patch_size = patch_size,
