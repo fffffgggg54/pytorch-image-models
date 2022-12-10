@@ -133,7 +133,6 @@ class PatchEmbed(nn.Module):
 
     
     def forward(self, x : Tensor, size: Tuple[int, int]):
-        print(x.shape)
         H, W = size
         dim = x.dim()
         if dim == 3:
@@ -581,11 +580,13 @@ def checkpoint_filter_fn(state_dict, model):
     
     if 'state_dict' in state_dict:
         state_dict = state_dict['state_dict']
-
+    import re
     out_dict = {}
     for k, v in state_dict.items():
-        k = k.replace('main_blocks.', 'stages.stage_')
-        k = k.replace('head.', 'head.fc.')
+        k = re.sub(r'patch_embeds.([0-9]+)', r'stages.\1.patch_embed', k)
+        k = re.sub(r'stages.stage_([0-9]+)', r'stages.\1.blocks', k)
+        #k = k.replace('main_blocks.', 'stages.stage_')
+        #k = k.replace('head.', 'head.fc.')
         out_dict[k] = v
     return out_dict
     
