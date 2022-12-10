@@ -440,7 +440,7 @@ class DaViTStage(nn.Module):
             x, size = checkpoint_seq(self.blocks, x, size)
         else:
             x, size = self.blocks(x, size)
-            
+        return x, size
 
 
 class DaViT(nn.Module):
