@@ -52,12 +52,12 @@ class SequentialWithSize(nn.Sequential):
 
     def forward(self, x: Tensor, size: Tuple[int, int]):
         for module in self._modules.values():
-            x, size = module(x, size)
-            '''
+            #x, size = module(x, size)
+            
             output = module(x, size)
             x : Tensor = output[0]
             size : Tuple[int, int] = output[1]
-            '''
+            
         return x, size
 
 class ConvPosEnc(nn.Module):
