@@ -34,7 +34,7 @@ from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
 
 __all__ = ['DaViT']
 
-
+# modified nn.Sequential that includes a size tuple in the forward function
 class SequentialWithSize(nn.Sequential):
     def forward(self, x : Tensor, size: Tuple[int, int]):
         for module in self._modules.values():
@@ -42,24 +42,6 @@ class SequentialWithSize(nn.Sequential):
         return x, size
 
 
-
-
-'''
-class SequentialWithSize(nn.Sequential):
-
-    def __init__(self, *args, **kwargs):
-        super(SequentialWithSize, self).__init__(*args, **kwargs)
-
-    def forward(self, x: Tensor, size: Tuple[int, int]):
-        for module in self._modules.values():
-            #x, size = module(x, size)
-            
-            output = module.forward(x, size)
-            x : Tensor = output[0]
-            size : Tuple[int, int] = output[1]
-            
-        return x, size
-'''
 class ConvPosEnc(nn.Module):
     def __init__(self, dim : int, k : int=3, act : bool=False, normtype : str='none'):
 
@@ -190,13 +172,13 @@ class ChannelBlock(nn.Module):
                  ffn=True, cpe_act=False):
         super().__init__()
 
-        self.cpe = nn.ModuleList([ConvPosEnc(dim=dim, k=3, act=cpe_act),
-                                  ConvPosEnc(dim=dim, k=3, act=cpe_act)])
+        self.cpe1 = ConvPosEnc(dim=dim, k=3, act=cpe_act)
         self.ffn = ffn
         self.norm1 = norm_layer(dim)
         self.attn = ChannelAttention(dim, num_heads=num_heads, qkv_bias=qkv_bias)
         self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
-
+        self.cpe2 = ConvPosEnc(dim=dim, k=3, act=cpe_act)
+        
         if self.ffn:
             self.norm2 = norm_layer(dim)
             mlp_hidden_dim = int(dim * mlp_ratio)
@@ -207,12 +189,12 @@ class ChannelBlock(nn.Module):
 
 
     def forward(self, x : Tensor, size: Tuple[int, int]):
-        x = self.cpe[0](x, size)
+        x = self.cpe1(x, size)
         cur = self.norm1(x)
         cur = self.attn(cur)
         x = x + self.drop_path(cur)
 
-        x = self.cpe[1](x, size)
+        x = self.cpe2(x, size)
         if self.ffn:
             x = x + self.drop_path(self.mlp(self.norm2(x)))
         return x, size
@@ -311,9 +293,8 @@ class SpatialBlock(nn.Module):
         self.num_heads = num_heads
         self.window_size = window_size
         self.mlp_ratio = mlp_ratio
-        self.cpe = nn.ModuleList([ConvPosEnc(dim=dim, k=3, act=cpe_act),
-                                  ConvPosEnc(dim=dim, k=3, act=cpe_act)])
-
+        
+        self.cpe1 = ConvPosEnc(dim=dim, k=3, act=cpe_act)
         self.norm1 = norm_layer(dim)
         self.attn = WindowAttention(
             dim,
@@ -322,7 +303,8 @@ class SpatialBlock(nn.Module):
             qkv_bias=qkv_bias)
 
         self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
-
+        self.cpe2 = ConvPosEnc(dim=dim, k=3, act=cpe_act)
+ 
         if self.ffn:
             self.norm2 = norm_layer(dim)
             mlp_hidden_dim = int(dim * mlp_ratio)
@@ -337,7 +319,7 @@ class SpatialBlock(nn.Module):
         H, W = size
         B, L, C = x.shape
 
-        shortcut = self.cpe[0](x, size)
+        shortcut = self.cpe1(x, size)
         x = self.norm1(shortcut)
         x = x.view(B, H, W, C)
 
@@ -366,7 +348,7 @@ class SpatialBlock(nn.Module):
         x = x.view(B, H * W, C)
         x = shortcut + self.drop_path(x)
 
-        x = self.cpe[1](x, size)
+        x = self.cpe2(x, size)
         if self.ffn:
             x = x + self.drop_path(self.mlp(self.norm2(x)))
         return x, size
