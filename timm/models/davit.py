@@ -509,7 +509,7 @@ class DaViT(nn.Module):
                 in_chans if stage_id == 0 else embed_dims[stage_id - 1],
                 embed_dims[stage_id],
                 depth = 1,
-                patch_size = patch_size if i == 0 else 2,
+                patch_size = patch_size if stage_id == 0 else 2,
                 overlapped_patch = overlapped_patch,
                 attention_types = attention_types,
                 num_heads = num_heads[stage_id],
