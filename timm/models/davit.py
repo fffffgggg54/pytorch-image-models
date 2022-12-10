@@ -34,12 +34,31 @@ from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
 
 __all__ = ['DaViT']
 
+'''
 class SequentialWithSize(nn.Sequential):
     def forward(self, x : Tensor, size: Tuple[int, int]):
         for module in self._modules.values():
             x, size = module(x, size)
         return x, size
 
+'''
+
+
+
+class SequentialWithSize(nn.Sequential):
+
+    def __init__(*args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def forward(self, x: Tensor, size: Tuple[int, int]):
+        for module in self._modules.values():
+            x, size = module(x, size)
+            '''
+            output = module(x, size)
+            x : Tensor = output[0]
+            size : Tuple[int, int] = output[1]
+            '''
+        return x, size
 
 class ConvPosEnc(nn.Module):
     def __init__(self, dim : int, k : int=3, act : bool=False, normtype : str='none'):
