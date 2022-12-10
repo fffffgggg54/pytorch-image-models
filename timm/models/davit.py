@@ -507,7 +507,7 @@ class DaViT(nn.Module):
             stage = DaViTStage(
                 in_chans if stage_id == 0 else embed_dims[stage_id - 1],
                 embed_dims[stage_id],
-                depth = 1,
+                depth = depths[stage_id],
                 patch_size = patch_size if stage_id == 0 else 2,
                 overlapped_patch = overlapped_patch,
                 attention_types = attention_types,
@@ -584,7 +584,7 @@ def checkpoint_filter_fn(state_dict, model):
     out_dict = {}
     for k, v in state_dict.items():
         k = re.sub(r'patch_embeds.([0-9]+)', r'stages.\1.patch_embed', k)
-        k = re.sub(r'main_blocks.([0-9]+).([0-9]+).([0-9]+)', r'stages.\1.blocks.\2.\3', k)
+        k = re.sub(r'main_blocks.([0-9]+)', r'stages.\1.blocks', k)
         k = k.replace('head.', 'head.fc.')
         out_dict[k] = v
     return out_dict
