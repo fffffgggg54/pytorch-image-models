@@ -130,8 +130,6 @@ class PatchEmbed(nn.Module):
                 stride=patch_size,
                 padding=to_2tuple(pad))
             self.norm = nn.LayerNorm(in_chans)
-            
-        print(self.norm.normalized_shape)
 
     
     def forward(self, x : Tensor, size: Tuple[int, int]):
@@ -506,14 +504,12 @@ class DaViT(nn.Module):
         
         for stage_id in range(self.num_stages):
             stage_drop_rates = dpr[len(attention_types) * sum(depths[:stage_id]):len(attention_types) * sum(depths[:stage_id + 1])]
-            
-            in_chs = in_chans if stage_id == 0 else embed_dims[stage_id - 1]
-            #print(in_chs)
+
             stage = DaViTStage(
-                in_chs,
+                in_chans if stage_id == 0 else embed_dims[stage_id - 1],
                 embed_dims[stage_id],
                 depth = 1,
-                patch_size = patch_size,
+                patch_size = patch_size if i == 0 else 2,
                 overlapped_patch = overlapped_patch,
                 attention_types = attention_types,
                 num_heads = num_heads[stage_id],
