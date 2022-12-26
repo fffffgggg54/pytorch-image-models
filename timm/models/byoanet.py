@@ -329,7 +329,7 @@ model_cfgs = dict(
             ByoBlockCfg(type='self_attn', d=12, c=512, s=1, gs=0, br=1.0),
         ),
         stem_chs=512,
-
+        stem_pool='maxpool',
         self_attn_layer='xnorm',
     ),
 )
