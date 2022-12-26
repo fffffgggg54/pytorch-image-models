@@ -321,6 +321,15 @@ model_cfgs = dict(
         stem_pool='',
         act_layer='silu',
     ),
+    # experimental
+    xvit_a=ByoModelCfg(
+        blocks=(
+            ByoBlockCfg(type='self_attn', d=12, c=512, s=1, gs=0, br=1.0),
+        ),
+        stem_chs=512,
+
+        self_attn_layer='xnorm',
+    ),
 )
 
 

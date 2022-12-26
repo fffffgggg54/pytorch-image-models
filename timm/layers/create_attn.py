@@ -16,6 +16,7 @@ from .non_local_attn import NonLocalAttn, BatNonLocalAttn
 from .selective_kernel import SelectiveKernel
 from .split_attn import SplitAttn
 from .squeeze_excite import SEModule, EffectiveSEModule
+from .xnorm_attn import XNormAttn
 
 
 def get_attn(attn_type):
@@ -47,6 +48,8 @@ def get_attn(attn_type):
                 module_cls = CbamModule
             elif attn_type == 'lcbam':
                 module_cls = LightCbamModule
+            elif attn_type == 'xnorm':
+                module_cls = XNormAttn
 
             # Attention / attention-like modules w/ significant params
             # Typically replace some of the existing workhorse convs in a network architecture.
