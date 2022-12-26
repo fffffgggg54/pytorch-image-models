@@ -51,11 +51,15 @@ class XNormAttention(nn.Module):
 
     def forward(self, x):
         B, N, C = x.shape
+        print(x.shape)
         qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
         q, k, v = qkv.unbind(0)   # make torchscript happy (cannot use tensor as tuple)
         # n x d_q, n x d_k, n x d_v
-        
+        print(q.shape)
+        print(k.shape)
+        print(v.shape)
         attn = self.xnorm(k.transpose(-2, -1) @ v)
+        print(attn.shape)
         x = (self.xnorm(q) @ attn).transpose(1, 2).reshape(B, N, C)
         x = self.proj(x)
         x = self.proj_drop(x)
