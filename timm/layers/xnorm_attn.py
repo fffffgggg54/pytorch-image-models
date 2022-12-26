@@ -33,6 +33,7 @@ class XNormAttn(nn.Module):
     def forward(self, x):
         
         dim = x.shape
+        print(dim)
         qkv = self.qkv(x).reshape(dim[0], dim[1], 3, self.num_heads, torch.prod(dim[2:]) // self.num_heads).permute(2, 0, 3, 1, 4)
         q, k, v = qkv.unbind(0)   # make torchscript happy (cannot use tensor as tuple)
         # n x d_q, n x d_k, n x d_v
