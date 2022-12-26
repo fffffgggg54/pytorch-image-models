@@ -31,7 +31,7 @@ class XNormAttn(nn.Module):
         self.xnorm = XNorm()
 
     def forward(self, x):
-        
+        x = x.mean((2, 3), keepdim=True)
         dim = x.shape
         print(dim)
         qkv = self.qkv(x).reshape(dim[0], dim[1], 3, self.num_heads, torch.prod(dim[2:]) // self.num_heads).permute(2, 0, 3, 1, 4)
