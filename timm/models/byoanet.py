@@ -451,3 +451,10 @@ def halo2botnet50ts_256(pretrained=False, **kwargs):
     """ Combo Attention (Halo + Halo + Bot) Network
     """
     return _create_byoanet('halo2botnet50ts_256', 'halo2botnet50ts', pretrained=pretrained, **kwargs)
+
+
+@register_model
+def xvit_a(pretrained=False, **kwargs):
+    """ experimental xnorm attention based model
+    """
+    return _create_byoanet('xvit_a', pretrained=pretrained, **kwargs)
