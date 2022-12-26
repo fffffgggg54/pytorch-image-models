@@ -62,7 +62,7 @@ class XNormAttention(nn.Module):
         print(v.shape)
         attn = self.xnorm(v @ k.transpose(-2, -1))
 
-        x = self.xnorm(q) @ attn
+        x = self.xnorm(q) @ attn.transpose(-2, -1)
         print(x.shape)
         x = x.transpose(1, 2).reshape(B, N, C)
         x = self.proj(x)
