@@ -81,8 +81,6 @@ default_cfgs = {
     'halo2botnet50ts_256': _cfg(
         url='https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-attn-weights/halo2botnet50ts_a1h2_256-fd9c11a3.pth',
         fixed_input_size=True, input_size=(3, 256, 256), pool_size=(8, 8)),
-        
-    'xvit_a': _cfg(url='', input_size=(3, 256, 256), pool_size=(8, 8), min_input_size=(3, 256, 256)),
 }
 
 
@@ -323,15 +321,6 @@ model_cfgs = dict(
         stem_pool='',
         act_layer='silu',
     ),
-    # experimental
-    xvit_a=ByoModelCfg(
-        blocks=(
-            ByoBlockCfg(type='self_attn', d=12, c=512, s=1, gs=0, br=1.0),
-        ),
-        stem_chs=512,
-        stem_pool='maxpool',
-        self_attn_layer='xnorm',
-    ),
 )
 
 
@@ -451,10 +440,3 @@ def halo2botnet50ts_256(pretrained=False, **kwargs):
     """ Combo Attention (Halo + Halo + Bot) Network
     """
     return _create_byoanet('halo2botnet50ts_256', 'halo2botnet50ts', pretrained=pretrained, **kwargs)
-
-
-@register_model
-def xvit_a(pretrained=False, **kwargs):
-    """ experimental xnorm attention based model
-    """
-    return _create_byoanet('xvit_a', pretrained=pretrained, **kwargs)
