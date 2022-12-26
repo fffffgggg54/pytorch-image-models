@@ -32,7 +32,7 @@ class XNorm(nn.Module):
 
     def forward(self, x):
         print(x.shape)
-        x = LA.norm(x, dim=-1) * self.gamma
+        x = LA.norm(x, dim=-1, keepdim=True) * self.gamma
         print(x.shape)
         return x
 
