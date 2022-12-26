@@ -27,7 +27,7 @@ class XNormAttn(nn.Module):
         self.proj = nn.Linear(dim, dim)
         self.proj_drop = nn.Dropout(proj_drop)
         
-        self.xnorm = Xnorm()
+        self.xnorm = XNorm()
 
     def forward(self, x):
         B, N, C = x.shape
