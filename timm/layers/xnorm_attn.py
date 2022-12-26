@@ -8,7 +8,7 @@ import torch.linalg as LA
 class XNorm(nn.Module):
     def __init__(self, initial_gamma = 0.2):
         super().__init__()
-        self.gamma = nn.Parameter(torch.zeros(gamma_size))
+        self.gamma = nn.Parameter(torch.zeros(1))
         nn.init.constant_(self.gamma, initial_gamma)
 
     def forward(self, x):
