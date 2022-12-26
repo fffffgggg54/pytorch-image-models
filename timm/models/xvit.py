@@ -31,7 +31,7 @@ class XNorm(nn.Module):
         nn.init.constant_(self.gamma, initial_gamma)
 
     def forward(self, x):
-        x = LA.norm(x, dim=0) * self.gamma
+        x = LA.norm(x, dim=1) * self.gamma
         return x
 
 class XNormAttention(nn.Module):
