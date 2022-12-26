@@ -31,9 +31,9 @@ class XNorm(nn.Module):
         nn.init.constant_(self.gamma, initial_gamma)
 
     def forward(self, x):
-        print(x.shape)
+        #print(x.shape)
         x = LA.norm(x, dim=-1, keepdim=True) * self.gamma
-        print(x.shape)
+        #print(x.shape)
         return x
 
 class XNormAttention(nn.Module):
@@ -53,17 +53,17 @@ class XNormAttention(nn.Module):
 
     def forward(self, x):
         B, N, C = x.shape
-        print(x.shape)
+        #print(x.shape)
         qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
         q, k, v = qkv.unbind(0)   # make torchscript happy (cannot use tensor as tuple)
         # n x d_q, n x d_k, n x d_v
-        print(q.shape)
-        print(k.shape)
-        print(v.shape)
+        #print(q.shape)
+        #print(k.shape)
+        #print(v.shape)
         attn = self.xnorm(k.transpose(-2, -1) @ v)
 
         x = self.xnorm(q) @ attn.transpose(-2, -1)
-        print(x.shape)
+        #print(x.shape)
         x = x.transpose(1, 2).reshape(B, N, C)
         x = self.proj(x)
         x = self.proj_drop(x)
