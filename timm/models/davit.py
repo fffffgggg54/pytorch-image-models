@@ -477,8 +477,7 @@ class DaViT(nn.Module):
         self.grad_checkpointing = False
         self.feature_info = []
         
-        self.stem = None
-
+        self.patch_embed = None
         stages = []
         
         for stage_id in range(self.num_stages):
@@ -502,7 +501,7 @@ class DaViT(nn.Module):
             )
             
             if stage_id == 0:
-                self.stem = stage.patch_embed
+                self.patch_embed = stage.patch_embed
                 stage.patch_embed = nn.Identity()
             
             stages.append(stage)
@@ -541,7 +540,7 @@ class DaViT(nn.Module):
         self.head = ClassifierHead(self.num_features, num_classes, pool_type=global_pool, drop_rate=self.drop_rate)
 
     def forward_features(self, x):
-        x = self.stem(x)
+        x = self.patch_embed(x)
         if self.grad_checkpointing and not torch.jit.is_scripting():
             x = checkpoint_seq(self.stages, x)
         else:
@@ -574,7 +573,7 @@ def checkpoint_filter_fn(state_dict, model):
         
         k = re.sub(r'patch_embeds.([0-9]+)', r'stages.\1.patch_embed', k)
         k = re.sub(r'main_blocks.([0-9]+)', r'stages.\1.blocks', k)
-        k = k.replace('stages.0.patch_embed', 'stem')
+        k = k.replace('stages.0.patch_embed', 'patch_embed')
         k = k.replace('norms.', 'norm.')
         k = k.replace('head.', 'head.fc.')
         k = k.replace('cpe.0', 'cpe1')
@@ -606,7 +605,7 @@ def _cfg(url='', **kwargs):
         'num_classes': 1000, 'input_size': (3, 224, 224), 'pool_size': (7, 7),
         'crop_pct': 0.875, 'interpolation': 'bilinear',
         'mean': IMAGENET_DEFAULT_MEAN, 'std': IMAGENET_DEFAULT_STD,
-        'first_conv': 'stem.proj', 'classifier': 'head.fc',
+        'first_conv': 'patch_embed.proj', 'classifier': 'head.fc',
         **kwargs
     }
 
