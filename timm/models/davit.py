@@ -478,6 +478,7 @@ class DaViT(nn.Module):
         self.feature_info = []
         
         self.stem = None
+
         stages = []
         
         for stage_id in range(self.num_stages):
