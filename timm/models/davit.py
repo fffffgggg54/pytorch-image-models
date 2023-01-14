@@ -12,6 +12,7 @@ DaViT model defs and weights adapted from https://github.com/dingmyu/davit, orig
 # All rights reserved.
 # This source code is licensed under the MIT license
 
+from collections import OrderedDict
 import itertools
 
 import torch
@@ -20,7 +21,7 @@ import torch.nn.functional as F
 from torch import Tensor
 
 from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
-from timm.layers import DropPath, to_2tuple, trunc_normal_, ClassifierHead, Mlp
+from timm.layers import DropPath, to_2tuple, trunc_normal_, SelectAdaptivePool2d, Mlp # ClassifierHead
 from ._builder import build_model_with_cfg
 from ._features import FeatureInfo
 from ._features_fx import register_notrace_function
@@ -459,7 +460,8 @@ class DaViT(nn.Module):
         drop_rate=0.,
         attn_drop_rate=0.,
         num_classes=1000,
-        global_pool='avg'
+        global_pool='avg',
+        head_norm_first=False,
     ):
         super().__init__()
 
@@ -510,8 +512,20 @@ class DaViT(nn.Module):
         
         self.stages = nn.Sequential(*stages)
         
-        self.norm = norm_layer(self.num_features)
-        self.head = ClassifierHead(self.num_features, num_classes, pool_type=global_pool, drop_rate=drop_rate)
+        #self.norm = norm_layer(self.num_features)
+        #self.head = ClassifierHead(self.num_features, num_classes, pool_type=global_pool, drop_rate=drop_rate)
+        
+        # if head_norm_first == true, norm -> global pool -> fc ordering, like most other nets
+        # otherwise pool -> norm -> fc, the default DaViT order, similar to ConvNeXt
+        # FIXME generalize this structure to ClassifierHead
+        self.norm_pre = norm_layer(self.num_features) if head_norm_first else nn.Identity()
+        self.head = nn.Sequential(OrderedDict([
+            ('global_pool', SelectAdaptivePool2d(pool_type=global_pool)),
+            ('norm', nn.Identity() if head_norm_first else norm_layer(self.num_features)),
+            ('flatten', nn.Flatten(1) if global_pool else nn.Identity()),
+            ('drop', nn.Dropout(self.drop_rate)),
+            ('fc', nn.Linear(self.num_features, num_classes) if num_classes > 0 else nn.Identity())]))
+        
         self.apply(self._init_weights)
     
     def _init_weights(self, m):
@@ -534,10 +548,10 @@ class DaViT(nn.Module):
         return self.head.fc
         
     def reset_classifier(self, num_classes, global_pool=None):
-        self.num_classes = num_classes
-        if global_pool is None:
-            global_pool = self.head.global_pool.pool_type
-        self.head = ClassifierHead(self.num_features, num_classes, pool_type=global_pool, drop_rate=self.drop_rate)
+        if global_pool is not None:
+            self.head.global_pool = SelectAdaptivePool2d(pool_type=global_pool)
+            self.head.flatten = nn.Flatten(1) if global_pool else nn.Identity()
+        self.head.fc = nn.Linear(self.num_features, num_classes) if num_classes > 0 else nn.Identity()
 
     def forward_features(self, x):
         x = self.patch_embed(x)
@@ -545,23 +559,30 @@ class DaViT(nn.Module):
             x = checkpoint_seq(self.stages, x)
         else:
             x = self.stages(x)
-        x = self.norm(x.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
+        x = self.norm_pre(x)
         return x
     
     def forward_head(self, x, pre_logits: bool = False):
-        return self.head(x, pre_logits=pre_logits)
+        #return self.head(x, pre_logits=pre_logits)
+        #x = self.head.global_pool(x)
+        #x = self.norms(x)
+        #x = self.head.fc(x)
+        #return self.head.flatten(x)
+        x = self.head.global_pool(x)
+        x = self.head.norm(x)
+        x = self.head.flatten(x)
+        x = self.head.drop(x)
+        return x if pre_logits else self.head.fc(x)
         
-    def forward_classifier(self, x):
+    def forward(self, x):
         x = self.forward_features(x)
         x = self.forward_head(x)
         return x
-        
-    def forward(self, x):
-        return self.forward_classifier(x)
+
 
 def checkpoint_filter_fn(state_dict, model):
     """ Remap MSFT checkpoints -> timm """
-    if 'head.norm.weight' in state_dict:
+    if 'head' in state_dict:
         return state_dict  # non-MSFT checkpoint
     
     if 'state_dict' in state_dict:
@@ -574,7 +595,7 @@ def checkpoint_filter_fn(state_dict, model):
         k = re.sub(r'patch_embeds.([0-9]+)', r'stages.\1.patch_embed', k)
         k = re.sub(r'main_blocks.([0-9]+)', r'stages.\1.blocks', k)
         k = k.replace('stages.0.patch_embed', 'patch_embed')
-        k = k.replace('norms.', 'norm.')
+        k = k.replace('norms.', 'head.norm.')
         k = k.replace('head.', 'head.fc.')
         k = k.replace('cpe.0', 'cpe1')
         k = k.replace('cpe.1', 'cpe2')
