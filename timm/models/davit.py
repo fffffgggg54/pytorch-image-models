@@ -509,11 +509,7 @@ class DaViT(nn.Module):
             stages.append(stage)
             self.feature_info += [dict(num_chs=self.embed_dims[stage_id], reduction=2, module=f'stages.{stage_id}')]
         
-        
         self.stages = nn.Sequential(*stages)
-        
-        #self.norm = norm_layer(self.num_features)
-        #self.head = ClassifierHead(self.num_features, num_classes, pool_type=global_pool, drop_rate=drop_rate)
         
         # if head_norm_first == true, norm -> global pool -> fc ordering, like most other nets
         # otherwise pool -> norm -> fc, the default DaViT order, similar to ConvNeXt
@@ -522,7 +518,6 @@ class DaViT(nn.Module):
         self.head = nn.Sequential(OrderedDict([
             ('global_pool', SelectAdaptivePool2d(pool_type=global_pool)),
             ('norm', nn.Identity() if head_norm_first else norm_layer(self.num_features)),
-            #('flatten', nn.Flatten(1) if global_pool else nn.Identity()),
             ('drop', nn.Dropout(self.drop_rate)),
             ('fc', nn.Linear(self.num_features, num_classes) if num_classes > 0 else nn.Identity())]))
         
@@ -550,7 +545,6 @@ class DaViT(nn.Module):
     def reset_classifier(self, num_classes, global_pool=None):
         if global_pool is not None:
             self.head.global_pool = SelectAdaptivePool2d(pool_type=global_pool)
-            #self.head.flatten = nn.Flatten(1) if global_pool else nn.Identity()
         self.head.fc = nn.Linear(self.num_features, num_classes) if num_classes > 0 else nn.Identity()
 
     def forward_features(self, x):
@@ -563,11 +557,6 @@ class DaViT(nn.Module):
         return x
     
     def forward_head(self, x, pre_logits: bool = False):
-        #return self.head(x, pre_logits=pre_logits)
-        #x = self.head.global_pool(x)
-        #x = self.norms(x)
-        #x = self.head.fc(x)
-        #return self.head.flatten(x)
         x = self.head.global_pool(x)
         x = self.head.norm(x.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
         x = x.squeeze()
@@ -624,7 +613,7 @@ def _cfg(url='', **kwargs):
     return {
         'url': url,
         'num_classes': 1000, 'input_size': (3, 224, 224), 'pool_size': (7, 7),
-        'crop_pct': 0.875, 'interpolation': 'bilinear',
+        'crop_pct': 0.850, 'interpolation': 'bicubic',
         'mean': IMAGENET_DEFAULT_MEAN, 'std': IMAGENET_DEFAULT_STD,
         'first_conv': 'patch_embed.proj', 'classifier': 'head.fc',
         **kwargs
