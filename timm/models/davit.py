@@ -520,7 +520,7 @@ class DaViT(nn.Module):
         # FIXME generalize this structure to ClassifierHead
         self.norm_pre = norm_layer(self.num_features) if head_norm_first else nn.Identity()
         self.head = nn.Sequential(OrderedDict([
-            ('global_pool', SelectAdaptivePool2d(pool_type=global_pool, flatten=True)),
+            ('global_pool', SelectAdaptivePool2d(pool_type=global_pool)),
             ('norm', nn.Identity() if head_norm_first else norm_layer(self.num_features)),
             #('flatten', nn.Flatten(1) if global_pool else nn.Identity()),
             ('drop', nn.Dropout(self.drop_rate)),
@@ -549,7 +549,7 @@ class DaViT(nn.Module):
         
     def reset_classifier(self, num_classes, global_pool=None):
         if global_pool is not None:
-            self.head.global_pool = SelectAdaptivePool2d(pool_type=global_pool, flatten=True)
+            self.head.global_pool = SelectAdaptivePool2d(pool_type=global_pool)
             #self.head.flatten = nn.Flatten(1) if global_pool else nn.Identity()
         self.head.fc = nn.Linear(self.num_features, num_classes) if num_classes > 0 else nn.Identity()
 
@@ -569,8 +569,8 @@ class DaViT(nn.Module):
         #x = self.head.fc(x)
         #return self.head.flatten(x)
         x = self.head.global_pool(x)
-        x = self.head.norm(x)
-        #x = self.head.flatten(x)
+        x = self.head.norm(x.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
+        x = x.squeeze()
         x = self.head.drop(x)
         return x if pre_logits else self.head.fc(x)
         
