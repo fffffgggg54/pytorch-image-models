@@ -549,8 +549,8 @@ class DaViT(nn.Module):
         
     def reset_classifier(self, num_classes, global_pool=None):
         if global_pool is not None:
-            self.head.global_pool = SelectAdaptivePool2d(pool_type=global_pool)
-            self.head.flatten = nn.Flatten(1) if global_pool else nn.Identity()
+            self.head.global_pool = SelectAdaptivePool2d(pool_type=global_pool, flatten=True)
+            #self.head.flatten = nn.Flatten(1) if global_pool else nn.Identity()
         self.head.fc = nn.Linear(self.num_features, num_classes) if num_classes > 0 else nn.Identity()
 
     def forward_features(self, x):
