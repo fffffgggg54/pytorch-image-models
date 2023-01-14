@@ -520,9 +520,9 @@ class DaViT(nn.Module):
         # FIXME generalize this structure to ClassifierHead
         self.norm_pre = norm_layer(self.num_features) if head_norm_first else nn.Identity()
         self.head = nn.Sequential(OrderedDict([
-            ('global_pool', SelectAdaptivePool2d(pool_type=global_pool)),
+            ('global_pool', SelectAdaptivePool2d(pool_type=global_pool, flatten=True)),
             ('norm', nn.Identity() if head_norm_first else norm_layer(self.num_features)),
-            ('flatten', nn.Flatten(1) if global_pool else nn.Identity()),
+            #('flatten', nn.Flatten(1) if global_pool else nn.Identity()),
             ('drop', nn.Dropout(self.drop_rate)),
             ('fc', nn.Linear(self.num_features, num_classes) if num_classes > 0 else nn.Identity())]))
         
@@ -559,7 +559,7 @@ class DaViT(nn.Module):
             x = checkpoint_seq(self.stages, x)
         else:
             x = self.stages(x)
-        x = self.norm_pre(x)
+        x = self.norm_pre(x.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
         return x
     
     def forward_head(self, x, pre_logits: bool = False):
@@ -570,7 +570,7 @@ class DaViT(nn.Module):
         #return self.head.flatten(x)
         x = self.head.global_pool(x)
         x = self.head.norm(x)
-        x = self.head.flatten(x)
+        #x = self.head.flatten(x)
         x = self.head.drop(x)
         return x if pre_logits else self.head.fc(x)
         
