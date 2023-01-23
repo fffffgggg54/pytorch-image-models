@@ -995,6 +995,55 @@ class ParallelMaxxVitBlock(nn.Module):
         x = x.permute(0, 3, 1, 2)
         return x
 
+class MOATBlock(nn.Module):
+    """MOAT block as per https://arxiv.org/abs/2210.01820v1
+    """
+
+    def __init__(
+        self,
+        dim: int,
+        dim_out: int,
+        stride: int = 1,
+        conv_cfg: MaxxVitConvCfg = MaxxVitConvCfg(),
+        transformer_cfg: MaxxVitTransformerCfg = MaxxVitTransformerCfg(),
+        drop_path: float = 0.
+    ):
+        super().__init__()
+        
+        
+        conv_cls = ConvNeXtBlock if conv_cfg.block_type == 'convnext' else MbConvBlock
+        self.conv = conv_cls(dim, dim_out, stride=stride, cfg=conv_cfg, drop_path=drop_path)
+        
+        
+        
+        norm_layer = partial(get_norm_layer(transformer_cfg.norm_layer), eps=transformer_cfg.norm_eps)
+        act_layer = get_act_layer(transformer_cfg.act_layer)
+        self.norm = norm_layer(dim_out)
+        self.attn = Attention2d(
+            dim_out,
+            dim_out,
+            dim_head=transformer_cfg.dim_head,
+            expand_first=transformer_cfg.expand_first,
+            bias=transformer_cfg.attn_bias,
+            rel_pos_cls=None,
+            attn_drop=transformer_cfg.attn_drop,
+            proj_drop=transformer_cfg.proj_drop
+        )
+        self.ls1 = LayerScale2d(dim_out, init_values=transformer_cfg.init_values) if transformer_cfg.init_values else nn.Identity()
+        self.drop_path1 = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+    
+    def init_weights(self, scheme=''):
+        named_apply(partial(_init_transformer, scheme=scheme), self.attn)
+        named_apply(partial(_init_conv, scheme=scheme), self.conv)
+    
+    def forward(self, x):
+        x = self.conv(x)
+        x = x + self.drop_path1(self.ls1(self.attn(self.norm(x))))
+        return x
+
+
+
+
 
 class MaxxVitStage(nn.Module):
     def __init__(
