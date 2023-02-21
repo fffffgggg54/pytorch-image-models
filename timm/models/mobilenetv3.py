@@ -797,3 +797,24 @@ def lcnet_150(pretrained=False, **kwargs):
     """ PP-LCNet 1.5"""
     model = _gen_lcnet('lcnet_150', 1.5, pretrained=pretrained, **kwargs)
     return model
+
+
+@register_model
+def lcnet_200(pretrained=False, **kwargs):
+    """ PP-LCNet 1.5"""
+    model = _gen_lcnet('lcnet_200', 2.0, pretrained=pretrained, **kwargs)
+    return model
+    
+    
+@register_model
+def lcnet_250(pretrained=False, **kwargs):
+    """ PP-LCNet 1.5"""
+    model = _gen_lcnet('lcnet_250', 2.5, pretrained=pretrained, **kwargs)
+    return model
+    
+    
+@register_model
+def lcnet_400(pretrained=False, **kwargs):
+    """ PP-LCNet 1.5"""
+    model = _gen_lcnet('lcnet_400', 4.0, pretrained=pretrained, **kwargs)
+    return model
