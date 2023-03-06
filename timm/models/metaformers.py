@@ -177,7 +177,8 @@ class Attention(nn.Module):
         return x
 
 class RandomMixing(nn.Module):
-    def __init__(self, num_tokens=196):
+    # need to write out possible kwargs since torchscript doesn't like **kwargs
+    def __init__(self, num_tokens=196, dim=None, drop=None):
         super().__init__()
         self.register_buffer('random_matrix', torch.softmax(torch.rand(num_tokens, num_tokens), dim=-1))
     def forward(self, x):
