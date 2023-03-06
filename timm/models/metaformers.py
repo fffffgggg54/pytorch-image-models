@@ -35,7 +35,7 @@ from timm.layers import trunc_normal_, DropPath, SelectAdaptivePool2d, GroupNorm
 from timm.layers.helpers import to_2tuple
 from ._builder import build_model_with_cfg
 from ._features import FeatureInfo
-from ._features_fx import register_notrace_function
+from ._features_fx import register_notrace_module
 from ._manipulate import checkpoint_seq
 from ._pretrained import generate_default_cfgs
 from ._registry import register_model
@@ -176,9 +176,10 @@ class Attention(nn.Module):
         x = x.reshape(B, C, H, W)
         return x
 
+# torchscript doesn't like the interpolation or the **kwargs
+@register_notrace_module
 class RandomMixing(nn.Module):
-    # need to write out possible kwargs since torchscript doesn't like **kwargs
-    def __init__(self, num_tokens=196, interpolation_mode = 'bilinear', dim=None, drop=None):
+    def __init__(self, num_tokens=196, interpolation_mode = 'bilinear', **kwargs):
         super().__init__()
         self.num_tokens = num_tokens
         self.register_buffer('random_matrix', torch.softmax(torch.rand(num_tokens, num_tokens), dim=-1))
