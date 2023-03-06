@@ -178,15 +178,21 @@ class Attention(nn.Module):
 
 class RandomMixing(nn.Module):
     # need to write out possible kwargs since torchscript doesn't like **kwargs
-    def __init__(self, num_tokens=196, dim=None, drop=None):
+    def __init__(self, num_tokens=196, interpolation_mode = 'bilinear', dim=None, drop=None):
         super().__init__()
         self.num_tokens = num_tokens
         self.register_buffer('random_matrix', torch.softmax(torch.rand(num_tokens, num_tokens), dim=-1))
+        self.interpolation_mode = interpolation_mode
     def forward(self, x):
         B, C, H, W = x.shape
         x = x.reshape(B, H*W, C)
         resized_matrix = self.random_matrix.view(1, 1, self.num_tokens, self.num_tokens)
-        resized_matrix = F.interpolate(resized_matrix, size=(H*W, H*W)).view(H*W, H*W)
+        
+        resized_matrix = F.interpolate(
+            resized_matrix, size=(H*W, H*W), 
+            mode = self.interpolation_mode
+        ).view(H*W, H*W)
+        
         x = torch.einsum('mn, bnc -> bmc', resized_matrix, x)
         x = x.reshape(B, C, H, W)
         return x
