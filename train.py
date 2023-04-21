@@ -120,6 +120,10 @@ group.add_argument('--in-chans', type=int, default=None, metavar='N',
 group.add_argument('--input-size', default=None, nargs=3, type=int,
                    metavar='N N N',
                    help='Input all image dimensions (d h w, e.g. --input-size 3 224 224), uses model default if empty')
+                   
+group.add_argument('--progressive', default=1.0, type=float, metavar='N',
+                   help='Starting image crop percentage for progressive training, 1.0 to disable (default: 1.0)')
+
 group.add_argument('--crop-pct', default=None, type=float,
                    metavar='N', help='Input image center crop percent (for validation only)')
 group.add_argument('--mean', type=float, nargs='+', default=None, metavar='MEAN',
