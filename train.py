@@ -33,7 +33,7 @@ from torch.nn.parallel import DistributedDataParallel as NativeDDP
 
 from timm import utils
 from timm.data import create_dataset, create_loader, resolve_data_config, Mixup, FastCollateMixup, AugMixDataset
-from timm.layers import convert_splitbn_model, convert_sync_batchnorm, set_fast_norm
+from timm.layers import convert_splitbn_model, convert_sync_batchnorm, set_fast_norm, PyramidFeatureAggregationModel
 from timm.loss import JsdCrossEntropy, SoftTargetCrossEntropy, BinaryCrossEntropy, LabelSmoothingCrossEntropy
 from timm.models import create_model, safe_model_name, resume_checkpoint, load_checkpoint, model_parameters
 from timm.optim import create_optimizer_v2, optimizer_kwargs
@@ -161,6 +161,8 @@ group.add_argument('--head-init-scale', default=None, type=float,
                    help='Head initialization scale')
 group.add_argument('--head-init-bias', default=None, type=float,
                    help='Head initialization bias value')
+group.add_argument('--use-pyramid-head', default=False, action='store_true')
+group.add_argument('--pyramid-head-kwargs', nargs='*', default={}, action=utils.ParseKwargs)
 
 # scripting / codegen
 scripting_group = group.add_mutually_exclusive_group()
@@ -496,6 +498,9 @@ def main():
 
     if args.grad_checkpointing:
         model.set_grad_checkpointing(enable=True)
+
+    if args.use_pyramid_head:
+        model = PyramidFeatureAggregationModel(model, model.num_classes, **args.model_kwargs)
 
     if utils.is_primary(args):
         _logger.info(
