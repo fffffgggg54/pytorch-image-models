@@ -497,7 +497,7 @@ def main():
         model.set_grad_checkpointing(enable=True)
 
     if args.use_pyramid_head:
-        model = PyramidFeatureAggregationModel(model, model.num_classes, **args.model_kwargs)
+        model = PyramidFeatureAggregationModel(model, args.num_classes, **args.model_kwargs)
 
     if args.num_classes is None:
         assert hasattr(model, 'num_classes'), 'Model must have `num_classes` attr if not set on cmd line/config.'
