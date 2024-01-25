@@ -204,3 +204,71 @@ class NormMlpClassifierHead(nn.Module):
             return x
         x = self.fc(x)
         return x
+
+from timm.layers import create_norm_layer, GluMlp, Mlp, SelectAdaptivePool2d, get_act_layer, create_act_layer
+class StarAct(nn.Module):
+    """
+    StarAct: s * act(x) ** 2 + b
+    """
+
+    def __init__(
+            self,
+            act_fn='relu',
+            scale_value=1.0,
+            bias_value=0.0,
+            scale_learnable=True,
+            bias_learnable=True,
+            mode=None,
+            inplace=False
+    ):
+        super().__init__()
+        self.inplace = inplace
+        self.act = create_act_layer(act_fn, inplace=inplace)
+        self.scale = nn.Parameter(scale_value * torch.ones(1), requires_grad=scale_learnable)
+        self.bias = nn.Parameter(bias_value * torch.ones(1), requires_grad=bias_learnable)
+
+    def forward(self, x):
+        return self.scale * self.act(x) ** 2 + self.bias
+class PyramidFeatureAggregationModel(nn.Module):
+    def __init__(
+        self,
+        model,
+        num_classes = 1000,
+        head_type = "glu",
+        head_act = "silu",
+    ):
+        super().__init__()
+        self.model = model
+
+        self.feature_dims = model.feature_info.channels()
+        self.num_features = sum(self.feature_dims)
+
+        self.norms = nn.ModuleList([create_norm_layer('layernorm2d', dim) for dim in self.feature_dims])
+        self.pools = nn.ModuleList([SelectAdaptivePool2d(pool_type='fast_avg', flatten=True) for dim in self.feature_dims])
+        self.num_classes = num_classes
+        if(head_type == "fc"):
+            self.head = nn.Linear(self.num_features, self.num_classes)
+        elif(head_type == "mlp"):
+            self.head = Mlp(
+                in_features = self.num_features,
+                hidden_features = int(4*self.num_features),
+                out_features = self.num_classes,
+                act_layer = get_act_layer(head_act),
+                norm_layer = None,
+            )
+        elif(head_type == "glu"):
+            self.head = GluMlp(
+                in_features = self.num_features,
+                hidden_features = int(2*2.5*self.num_features),
+                out_features = self.num_classes,
+                act_layer = get_act_layer(head_act),
+                norm_layer = None,
+            )
+
+    def forward(self, x):
+        x=self.model(x)
+        #x = torch.column_stack([nn.functional.gelu(out).mean((-2, -1)) for out in x]) # NCHW only for now
+        #return self.head(x)
+
+        x = torch.column_stack([pool(norm(out)) for pool, norm, out in zip(self.pools, self.norms, x)])
+        return self.head(x)
