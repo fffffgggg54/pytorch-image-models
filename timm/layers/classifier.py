@@ -208,7 +208,14 @@ class NormMlpClassifierHead(nn.Module):
         return x
 
 
-class CalssifierHead_New(nn.Module):
+def convert_fmt(
+    self,
+    input_fmt,
+    output_fmt,
+):
+    #in fmt {NCHW, NHWC, BNC}
+
+class ClassifierHead_New(nn.Module):
     def __init__(
         self,
         in_features,
@@ -216,6 +223,6 @@ class CalssifierHead_New(nn.Module):
         input_fmt,
         classifier_type = 'ffn',
         pool_type = 'avg',
-        
 
-    )
+
+    ):
