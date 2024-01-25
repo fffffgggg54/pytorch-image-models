@@ -493,15 +493,15 @@ def main():
     if args.head_init_bias is not None:
         nn.init.constant_(model.get_classifier().bias, args.head_init_bias)
 
-    if args.num_classes is None:
-        assert hasattr(model, 'num_classes'), 'Model must have `num_classes` attr if not set on cmd line/config.'
-        args.num_classes = model.num_classes  # FIXME handle model default vs config num_classes more elegantly
-
     if args.grad_checkpointing:
         model.set_grad_checkpointing(enable=True)
 
     if args.use_pyramid_head:
         model = PyramidFeatureAggregationModel(model, model.num_classes, **args.model_kwargs)
+
+    if args.num_classes is None:
+        assert hasattr(model, 'num_classes'), 'Model must have `num_classes` attr if not set on cmd line/config.'
+        args.num_classes = model.num_classes  # FIXME handle model default vs config num_classes more elegantly
 
     if utils.is_primary(args):
         _logger.info(
