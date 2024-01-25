@@ -11,8 +11,9 @@ import torch.nn as nn
 from torch.nn import functional as F
 
 from .adaptive_avgmax_pool import SelectAdaptivePool2d
-from .create_act import get_act_layer
-from .create_norm import get_norm_layer
+from .create_act import get_act_layer, create_act_layer
+from .create_norm import get_norm_layer, create_norm_layer 
+from .mlp import GluMlp, Mlp
 
 
 def _create_pool(
@@ -207,7 +208,6 @@ class NormMlpClassifierHead(nn.Module):
         x = self.fc(x)
         return x
 
-from timm.layers import create_norm_layer, GluMlp, Mlp, SelectAdaptivePool2d, get_act_layer, create_act_layer
 class StarAct(nn.Module):
     """
     StarAct: s * act(x) ** 2 + b
