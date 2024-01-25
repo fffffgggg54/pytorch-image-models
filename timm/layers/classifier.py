@@ -206,3 +206,16 @@ class NormMlpClassifierHead(nn.Module):
             return x
         x = self.fc(x)
         return x
+
+
+class CalssifierHead_New(nn.Module):
+    def __init__(
+        self,
+        in_features,
+        num_classes,
+        input_fmt,
+        classifier_type = 'ffn',
+        pool_type = 'avg',
+        
+
+    )
