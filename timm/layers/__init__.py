@@ -5,7 +5,7 @@ from .attention2d import MultiQueryAttention2d, Attention2d, MultiQueryAttention
 from .attention_pool import AttentionPoolLatent
 from .attention_pool2d import AttentionPool2d, RotAttentionPool2d, RotaryEmbedding
 from .blur_pool import BlurPool2d, create_aa
-from .classifier import ClassifierHead, create_classifier, NormMlpClassifierHead
+from .classifier import ClassifierHead, create_classifier, NormMlpClassifierHead, PyramidFeatureAggregationModel
 from .cond_conv2d import CondConv2d, get_condconv_initializer
 from .config import is_exportable, is_scriptable, is_no_jit, use_fused_attn, \
     set_exportable, set_scriptable, set_no_jit, set_layer_config, set_fused_attn
