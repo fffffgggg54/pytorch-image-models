@@ -849,6 +849,11 @@ default_cfgs = generate_default_cfgs({
     'caformer_b36.sail_in22k': _cfg(
         hf_hub_id='timm/',
         classifier='head.fc.fc2', num_classes=21841),
+        
+    #######################
+    'convformer_s18_vgg.untrained': _cfg(
+        classifier='head.fc.fc2'),
+    
 })
 
 
