@@ -270,6 +270,25 @@ class SepConv(nn.Module):
         x = self.pwconv2(x)
         return x
 
+class VggConv(nn.Module):
+    def __init__(
+        self,
+        dim,
+        kernel_size=3,
+        padding=1,
+        bias=False,
+        act_layer=StarReLU,
+        **kwargs
+    ):
+        super().__init__()
+        self.conv = nn.Conv2d(dim, dim, kernel_size=kernel_size, padding=padding, groups=1, bias=bias)
+        self.act = act_layer()
+        
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.act(x)
+        return x
+
 
 class Pooling(nn.Module):
     """
@@ -1054,3 +1073,14 @@ def caformer_b36(pretrained=False, **kwargs) -> MetaFormer:
         norm_layers=[LayerNorm2dNoBias] * 2 + [LayerNormNoBias] * 2,
         **kwargs)
     return _create_metaformer('caformer_b36', pretrained=pretrained, **model_kwargs)
+
+##################################
+@register_model
+def convformer_s18_vgg(pretrained=False, **kwargs) -> MetaFormer:
+    model_kwargs = dict(
+        depths=[3, 3, 9, 3],
+        dims=[64, 128, 320, 512],
+        token_mixers=VggConv,
+        norm_layers=LayerNorm2dNoBias,
+        **kwargs)
+    return _create_metaformer('convformer_s18_vgg', pretrained=pretrained, **model_kwargs)
