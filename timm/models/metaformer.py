@@ -278,12 +278,13 @@ class VggConv(nn.Module):
         padding=1,
         bias=False,
         act_layer=StarReLU,
+        attn = nn.Identity,
         **kwargs
     ):
         super().__init__()
         self.conv = nn.Conv2d(dim, dim, kernel_size=kernel_size, padding=padding, groups=1, bias=bias)
         self.act = act_layer()
-        self.attn = create_attn('se', dim)
+        self.attn = create_attn(attn, dim, **kwargs)
         
     def forward(self, x):
         x = self.conv(x)
@@ -855,6 +856,8 @@ default_cfgs = generate_default_cfgs({
     #######################
     'convformer_s18_vgg.untrained': _cfg(
         classifier='head.fc.fc2'),
+    'convformer_s18_vgg_se.untrained': _cfg(
+        classifier='head.fc.fc2'),
     
 })
 
@@ -1091,3 +1094,15 @@ def convformer_s18_vgg(pretrained=False, **kwargs) -> MetaFormer:
         norm_layers=LayerNorm2dNoBias,
         **kwargs)
     return _create_metaformer('convformer_s18_vgg', pretrained=pretrained, **model_kwargs)
+    
+    
+@register_model
+def convformer_s18_vgg_se(pretrained=False, **kwargs) -> MetaFormer:
+    model_kwargs = dict(
+        depths=[3, 3, 9, 3],
+        dims=[64, 128, 320, 512],
+        token_mixers=VggConv,
+        norm_layers=LayerNorm2dNoBias,
+        attn='se',
+        **kwargs)
+    return _create_metaformer('convformer_s18_vgg_se', pretrained=pretrained, **model_kwargs)
