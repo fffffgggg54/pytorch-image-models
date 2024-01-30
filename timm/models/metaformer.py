@@ -38,7 +38,7 @@ from torch.jit import Final
 
 from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
 from timm.layers import trunc_normal_, DropPath, SelectAdaptivePool2d, GroupNorm1, LayerNorm, LayerNorm2d, Mlp, \
-    use_fused_attn
+    use_fused_attn, create_attn
 from ._builder import build_model_with_cfg
 from ._manipulate import checkpoint_seq
 from ._registry import generate_default_cfgs, register_model
@@ -283,10 +283,12 @@ class VggConv(nn.Module):
         super().__init__()
         self.conv = nn.Conv2d(dim, dim, kernel_size=kernel_size, padding=padding, groups=1, bias=bias)
         self.act = act_layer()
+        self.attn = create_attn('se', dim)
         
     def forward(self, x):
         x = self.conv(x)
         x = self.act(x)
+        x = self.attn(x)
         return x
 
 
