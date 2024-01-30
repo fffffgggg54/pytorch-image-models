@@ -278,13 +278,13 @@ class VggConv(nn.Module):
         padding=1,
         bias=False,
         act_layer=StarReLU,
-        attn = nn.Identity,
+        attn=nn.Identity,
         **kwargs
     ):
         super().__init__()
         self.conv = nn.Conv2d(dim, dim, kernel_size=kernel_size, padding=padding, groups=1, bias=bias)
         self.act = act_layer()
-        self.attn = create_attn(attn, dim, **kwargs)
+        self.attn = create_attn(attn, dim, act_layer=act_layer, **kwargs)
         
     def forward(self, x):
         x = self.conv(x)
