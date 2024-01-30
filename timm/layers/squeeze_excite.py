@@ -27,7 +27,7 @@ class SEModule(nn.Module):
     """
     def __init__(
             self, channels, rd_ratio=1. / 16, rd_channels=None, rd_divisor=8, add_maxpool=False,
-            bias=True, act_layer=nn.ReLU, norm_layer=None, gate_layer='sigmoid'):
+            bias=True, act_layer=nn.ReLU, norm_layer=None, gate_layer='sigmoid', **_):
         super(SEModule, self).__init__()
         self.add_maxpool = add_maxpool
         if not rd_channels:
