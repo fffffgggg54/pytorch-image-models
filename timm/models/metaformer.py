@@ -37,7 +37,7 @@ from torch import Tensor
 from torch.jit import Final
 
 from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
-from timm.layers import trunc_normal_, DropPath, SelectAdaptivePool2d, GroupNorm1, LayerNorm, LayerNorm2d, Mlp, \
+from timm.layers import trunc_normal_, DropPath, SelectAdaptivePool2d, GroupNorm1, LayerNorm, LayerNorm2d, Mlp, GluMlp, \
     use_fused_attn, create_attn
 from ._builder import build_model_with_cfg
 from ._manipulate import checkpoint_seq
@@ -350,6 +350,7 @@ class MetaFormerBlock(nn.Module):
             token_mixer=Pooling,
             mlp_act=StarReLU,
             mlp_bias=False,
+            use_glumlp=False,
             norm_layer=LayerNorm2d,
             proj_drop=0.,
             drop_path=0.,
@@ -369,9 +370,10 @@ class MetaFormerBlock(nn.Module):
         self.res_scale1 = rs_layer() if res_scale_init_value is not None else nn.Identity()
 
         self.norm2 = norm_layer(dim)
-        self.mlp = Mlp(
+        mlp_fn = GluMlp if use_glumlp else Mlp
+        self.mlp = mlp_fn(
             dim,
-            int(4 * dim),
+            int(5 * dim) if use_glumlp else int(4 * dim),
             act_layer=mlp_act,
             bias=mlp_bias,
             drop=proj_drop,
@@ -407,6 +409,7 @@ class MetaFormerStage(nn.Module):
             token_mixer=nn.Identity,
             mlp_act=StarReLU,
             mlp_bias=False,
+            use_glumlp=False,
             downsample_norm=LayerNorm2d,
             norm_layer=LayerNorm2d,
             proj_drop=0.,
@@ -502,6 +505,7 @@ class MetaFormer(nn.Module):
             token_mixers=Pooling,
             mlp_act=StarReLU,
             mlp_bias=False,
+            use_glumlp=False,
             drop_path_rate=0.,
             proj_drop_rate=0.,
             drop_rate=0.0,
@@ -858,6 +862,9 @@ default_cfgs = generate_default_cfgs({
         classifier='head.fc.fc2'),
     'convformer_s18_vgg_se.untrained': _cfg(
         classifier='head.fc.fc2'),
+
+    'convformer_s18_glumlp.untrained': _cfg(
+        classifier='head.fc.fc2'),
     
 })
 
@@ -1106,3 +1113,14 @@ def convformer_s18_vgg_se(pretrained=False, **kwargs) -> MetaFormer:
         attn='se',
         **kwargs)
     return _create_metaformer('convformer_s18_vgg_se', pretrained=pretrained, **model_kwargs)
+
+@register_model
+def convformer_s18_vgg(pretrained=False, **kwargs) -> MetaFormer:
+    model_kwargs = dict(
+        depths=[3, 3, 9, 3],
+        dims=[64, 128, 320, 512],
+        token_mixers=SepConv,
+        use_glumlp=True,
+        norm_layers=LayerNorm2dNoBias,
+        **kwargs)
+    return _create_metaformer('convformer_s18_vgg', pretrained=pretrained, **model_kwargs)
