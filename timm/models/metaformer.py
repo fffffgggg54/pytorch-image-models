@@ -1115,7 +1115,7 @@ def convformer_s18_vgg_se(pretrained=False, **kwargs) -> MetaFormer:
     return _create_metaformer('convformer_s18_vgg_se', pretrained=pretrained, **model_kwargs)
 
 @register_model
-def convformer_s18_vgg(pretrained=False, **kwargs) -> MetaFormer:
+def convformer_s18_glumlp(pretrained=False, **kwargs) -> MetaFormer:
     model_kwargs = dict(
         depths=[3, 3, 9, 3],
         dims=[64, 128, 320, 512],
