@@ -867,6 +867,8 @@ default_cfgs = generate_default_cfgs({
 
     'convformer_s18_glumlp.untrained': _cfg(
         classifier='head.fc.fc2'),
+    'convformer_tiny.untrained': _cfg(
+        classifier='head.fc.fc2'),
     
 })
 
@@ -1126,3 +1128,15 @@ def convformer_s18_glumlp(pretrained=False, **kwargs) -> MetaFormer:
         norm_layers=LayerNorm2dNoBias,
         **kwargs)
     return _create_metaformer('convformer_s18_vgg', pretrained=pretrained, **model_kwargs)
+
+
+# experimental scaling (L, L, 3L, L), (L, L, 3KL, L), etc
+@register_model
+def convformer_tiny(pretrained=False, **kwargs) -> MetaFormer:
+    model_kwargs = dict(
+        depths=[2, 2, 6, 2],
+        dims=[96, 192, 384, 768],
+        token_mixers=SepConv,
+        norm_layers=LayerNorm2dNoBias,
+        **kwargs)
+    return _create_metaformer('convformer_tiny', pretrained=pretrained, **model_kwargs)
