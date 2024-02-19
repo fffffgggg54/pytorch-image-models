@@ -14,6 +14,14 @@ from .adaptive_avgmax_pool import SelectAdaptivePool2d
 from .create_act import get_act_layer
 from .create_norm import get_norm_layer
 
+# handle the output sequences of ViT-like models
+class SequencePool(
+    def __init__(
+        pool_type=pool_type,
+        flatten=flatten_in_pool,
+        input_fmt=input_fmt,
+    ):
+        
 
 def _create_pool(
         num_features: int,
@@ -27,11 +35,18 @@ def _create_pool(
         assert num_classes == 0 or use_conv,\
             'Pooling can only be disabled if classifier is also removed or conv classifier is used'
         flatten_in_pool = False  # disable flattening if pooling is pass-through (no pooling)
-    global_pool = SelectAdaptivePool2d(
-        pool_type=pool_type,
-        flatten=flatten_in_pool,
-        input_fmt=input_fmt,
-    )
+    if len(input_fmt == 3):
+        global_pool = SequencePool(
+            pool_type=pool_type,
+            flatten=flatten_in_pool,
+            input_fmt=input_fmt,
+        )
+    else:
+        global_pool = SelectAdaptivePool2d(
+            pool_type=pool_type,
+            flatten=flatten_in_pool,
+            input_fmt=input_fmt,
+        )
     num_pooled_features = num_features * global_pool.feat_mult()
     return global_pool, num_pooled_features
 
@@ -207,22 +222,17 @@ class NormMlpClassifierHead(nn.Module):
         x = self.fc(x)
         return x
 
+'''
+need to handle the following:
+BCHW -> pool
+BHWC -> pool
+BNC -> pool
+BNC -> select
+'''
 
-def convert_fmt(
-    self,
-    input_fmt,
-    output_fmt,
-):
-    #in fmt {NCHW, NHWC, BNC}
-
-class ClassifierHead_New(nn.Module):
+class FeatureMapPreprocessor(nn.Module):
     def __init__(
-        self,
-        in_features,
-        num_classes,
-        input_fmt,
-        classifier_type = 'ffn',
-        pool_type = 'avg',
-
-
-    ):
+            self,
+            input_fmt: str,
+            
+        
