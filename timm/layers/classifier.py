@@ -15,12 +15,20 @@ from .create_act import get_act_layer
 from .create_norm import get_norm_layer
 
 # handle the output sequences of ViT-like models
-class SequencePool(
+class SequencePool(nn.Module):
     def __init__(
-        pool_type=pool_type,
-        flatten=flatten_in_pool,
-        input_fmt=input_fmt,
-    ):
+        pool_type='cls',
+        input_fmt = None,
+        prefix_len = 0,
+    ):  
+        self.feature_source = feature_source
+        self.input_fmt = None
+        self.prefix_len = prefix_len
+        
+    def forward(self, x):
+        if self.pool_type = 'cls':
+            return x[:, 0] # class token
+            
         
 
 def _create_pool(
@@ -29,6 +37,7 @@ def _create_pool(
         pool_type: str = 'avg',
         use_conv: bool = False,
         input_fmt: Optional[str] = None,
+        prefix_len: Optional[int] = None,
 ):
     flatten_in_pool = not use_conv  # flatten when we use a Linear layer after pooling
     if not pool_type:
@@ -38,8 +47,8 @@ def _create_pool(
     if len(input_fmt == 3):
         global_pool = SequencePool(
             pool_type=pool_type,
-            flatten=flatten_in_pool,
             input_fmt=input_fmt,
+            prefix_len = prefix_len
         )
     else:
         global_pool = SelectAdaptivePool2d(
