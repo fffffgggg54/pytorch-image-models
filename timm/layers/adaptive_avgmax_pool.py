@@ -103,6 +103,9 @@ class FastAdaptiveCatAvgMaxPool(nn.Module):
         return torch.cat((x_avg, x_max), self.dim_cat)
 
 
+class ClassTokenExtractor(nn.Module):
+    def __init__(self, 
+
 class AdaptiveAvgMaxPool2d(nn.Module):
     def __init__(self, output_size: _int_tuple_2_t = 1):
         super(AdaptiveAvgMaxPool2d, self).__init__()
@@ -132,7 +135,7 @@ class SelectAdaptivePool2d(nn.Module):
             input_fmt: str = 'NCHW',
     ):
         super(SelectAdaptivePool2d, self).__init__()
-        assert input_fmt in ('NCHW', 'NHWC')
+        assert input_fmt in ('NCHW', 'NHWC', 'NCL', 'NLC')
         self.pool_type = pool_type or ''  # convert other falsy values to empty string for consistent TS typing
         if not pool_type:
             self.pool = nn.Identity()  # pass through
