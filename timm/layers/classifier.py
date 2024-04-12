@@ -247,7 +247,7 @@ class PyramidFeatureAggregationModel(nn.Module):
 
         self.norms = nn.ModuleList([create_norm_layer('layernorm2d', dim) for dim in self.feature_dims])
         self.pools = nn.ModuleList([SelectAdaptivePool2d(pool_type='fast_avg', flatten=True) for dim in self.feature_dims])
-        self.num_classes = model.num_classes if num_classes is None else num_classes
+        self.num_classes = 1000 if num_classes is None else num_classes
         if(head_type == "fc"):
             self.head = nn.Linear(self.num_features, self.num_classes)
         elif(head_type == "mlp"):
