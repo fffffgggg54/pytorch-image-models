@@ -24,11 +24,11 @@ class SequencePool(nn.Module):
         self.feature_source = feature_source
         self.input_fmt = None
         self.prefix_len = prefix_len
-        self.global_pool
         
     def forward(self, x):
-        if self.pool_type = 'cls':
+        if self.pool_type == 'cls':
             return x[:, 0] # class token
+        
             
         
 
