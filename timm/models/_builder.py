@@ -7,7 +7,7 @@ from typing import Optional, Dict, Callable, Any, Tuple
 from torch import nn as nn
 from torch.hub import load_state_dict_from_url
 
-from timm.models._features import FeatureListNet, FeatureHookNet
+from timm.models._features import FeatureListNet, FeatureDictNet, FeatureHookNet, FeatureGetterNet
 from timm.models._features_fx import FeatureGraphNet
 from timm.models._helpers import load_state_dict
 from timm.models._hub import has_hf_hub, download_cached_file, check_cached_file, load_state_dict_from_hf
@@ -261,7 +261,7 @@ def _filter_kwargs(kwargs, names):
         kwargs.pop(n, None)
 
 
-def _update_default_kwargs(pretrained_cfg, kwargs, kwargs_filter):
+def _update_default_model_kwargs(pretrained_cfg, kwargs, kwargs_filter):
     """ Update the default_cfg and kwargs before passing to model
 
     Args:
@@ -288,6 +288,11 @@ def _update_default_kwargs(pretrained_cfg, kwargs, kwargs_filter):
             if input_size is not None:
                 assert len(input_size) == 3
                 kwargs.setdefault(n, input_size[0])
+        elif n == 'num_classes':
+            default_val = pretrained_cfg.get(n, None)
+            # if default is < 0, don't pass through to model
+            if default_val is not None and default_val >= 0:
+                kwargs.setdefault(n, pretrained_cfg[n])
         else:
             default_val = pretrained_cfg.get(n, None)
             if default_val is not None:
@@ -379,7 +384,7 @@ def build_model_with_cfg(
     # FIXME converting back to dict, PretrainedCfg use should be propagated further, but not into model
     pretrained_cfg = pretrained_cfg.to_dict()
 
-    _update_default_kwargs(pretrained_cfg, kwargs, kwargs_filter)
+    _update_default_model_kwargs(pretrained_cfg, kwargs, kwargs_filter)
 
     # Setup for feature extraction wrapper done at end of this fn
     if kwargs.pop('features_only', False):
@@ -423,8 +428,12 @@ def build_model_with_cfg(
                 feature_cls = feature_cls.lower()
                 if 'hook' in feature_cls:
                     feature_cls = FeatureHookNet
+                elif feature_cls == 'dict':
+                    feature_cls = FeatureDictNet
                 elif feature_cls == 'fx':
                     feature_cls = FeatureGraphNet
+                elif feature_cls == 'getter':
+                    feature_cls = FeatureGetterNet
                 else:
                     assert False, f'Unknown feature class {feature_cls}'
         model = feature_cls(model, **feature_cfg)

@@ -25,6 +25,7 @@ from .focalnet import *
 from .gcvit import *
 from .ghostnet import *
 from .hardcorenas import *
+from .hgnet import *
 from .hrnet import *
 from .inception_next import *
 from .inception_resnet_v2 import *
@@ -39,6 +40,7 @@ from .mobilevit import *
 from .mvitv2 import *
 from .nasnet import *
 from .nest import *
+from .nextvit import *
 from .nfnet import *
 from .pit import *
 from .pnasnet import *
