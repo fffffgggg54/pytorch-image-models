@@ -382,7 +382,7 @@ class Twins(nn.Module):
     def get_classifier(self):
         return self.head
 
-    def reset_classifier(self, num_classes, global_pool=None):
+    def reset_classifier(self, num_classes: int, global_pool: Optional[str] = None):
         self.num_classes = num_classes
         if global_pool is not None:
             assert global_pool in ('', 'avg')
@@ -407,9 +407,9 @@ class Twins(nn.Module):
     def forward_intermediates(
             self,
             x: torch.Tensor,
-            indices: Union[int, List[int], Tuple[int]] = None,
+            indices: Optional[Union[int, List[int], Tuple[int]]] = None,
             norm: bool = False,
-            stop_early: bool = True,
+            stop_early: bool = False,
             output_fmt: str = 'NCHW',
             intermediates_only: bool = False,
     ) -> Union[List[torch.Tensor], Tuple[torch.Tensor, List[torch.Tensor]]]:
@@ -458,6 +458,22 @@ class Twins(nn.Module):
         x = self.norm(x)
 
         return x, intermediates
+
+    def prune_intermediate_layers(
+            self,
+            indices: Union[int, List[int], Tuple[int]] = 1,
+            prune_norm: bool = False,
+            prune_head: bool = True,
+    ):
+        """ Prune layers not required for specified intermediates.
+        """
+        take_indices, max_index = feature_take_indices(len(self.blocks), indices)
+        # FIXME add block pruning
+        if prune_norm:
+            self.norm = nn.Identity()
+        if prune_head:
+            self.reset_classifier(0, '')
+        return take_indices
 
     def forward_features(self, x):
         B = x.shape[0]
