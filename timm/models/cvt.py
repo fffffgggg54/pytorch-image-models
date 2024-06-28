@@ -1,6 +1,6 @@
 """ CvT: Convolutional Vision Transformer
 
-reference impl of CvT in PyTorch
+reference impl of CvT in PyTorch from https://github.com/microsoft/CvT
 
 'CvT: Introducing Convolutions to Vision Transformers'
     - https://arxiv.org/abs/2103.15808
