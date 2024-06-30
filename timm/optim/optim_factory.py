@@ -16,6 +16,7 @@ from .adafactor import Adafactor
 from .adahessian import Adahessian
 from .adamp import AdamP
 from .adan import Adan
+from .generalized_signsgd import GeneralizedSignSGD
 from .lamb import Lamb
 from .lars import Lars
 from .lion import Lion
@@ -331,6 +332,8 @@ def create_optimizer_v2(
         optimizer = Adan(parameters, no_prox=False, **opt_args)
     elif opt_lower == 'adanw':
         optimizer = Adan(parameters, no_prox=True, **opt_args)
+    elif opt_lower =='generalized_signsgd'
+        optimizer = GeneralizedSignSGD(parameters, **opt_args)
     elif opt_lower == 'lamb':
         optimizer = Lamb(parameters, **opt_args)
     elif opt_lower == 'lambc':

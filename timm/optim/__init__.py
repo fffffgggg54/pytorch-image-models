@@ -4,6 +4,7 @@ from .adahessian import Adahessian
 from .adamp import AdamP
 from .adamw import AdamW
 from .adan import Adan
+from .generalized_signsgd import GeneralizedSignSGD
 from .lamb import Lamb
 from .lars import Lars
 from .lookahead import Lookahead
