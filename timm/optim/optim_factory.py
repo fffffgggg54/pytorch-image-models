@@ -332,7 +332,7 @@ def create_optimizer_v2(
         optimizer = Adan(parameters, no_prox=False, **opt_args)
     elif opt_lower == 'adanw':
         optimizer = Adan(parameters, no_prox=True, **opt_args)
-    elif opt_lower =='generalized_signsgd'
+    elif opt_lower =='generalized_signsgd':
         optimizer = GeneralizedSignSGD(parameters, **opt_args)
     elif opt_lower == 'lamb':
         optimizer = Lamb(parameters, **opt_args)
