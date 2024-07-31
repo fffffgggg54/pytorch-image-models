@@ -163,6 +163,9 @@ group.add_argument('--head-init-bias', default=None, type=float,
                    help='Head initialization bias value')
 group.add_argument('--use-pyramid-head', default=False, action='store_true')
 group.add_argument('--pyramid-head-kwargs', nargs='*', default={}, action=utils.ParseKwargs)
+group.add_argument('--use-fp2t', default=False, action='store_true')
+group.add_argument('--fp2t-kwargs', nargs='*', default={}, action=utils.ParseKwargs)
+
 
 # scripting / codegen
 scripting_group = group.add_mutually_exclusive_group()
@@ -498,6 +501,9 @@ def main():
 
     if args.use_pyramid_head:
         model = PyramidFeatureAggregationModel(model, args.num_classes, **args.model_kwargs)
+        
+    if args.use_fp2t:
+        model = FeaturePyramid2Token(model, num_classes = args.num_classes, **args.fp2t_kwargs)
 
     if args.num_classes is None:
         assert hasattr(model, 'num_classes'), 'Model must have `num_classes` attr if not set on cmd line/config.'
