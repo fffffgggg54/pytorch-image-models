@@ -433,7 +433,7 @@ class FeaturePyramid2Token(nn.Module):
         self.num_classes = 1000 if num_classes is None else num_classes
         feature_dims = self.model.feature_info.channels()
         self.decoders = nn.ModuleList([CrossAttention(embed_dim, kv_dim = dim, **kwargs) for dim in feature_dims])
-        self.queries = nn.ParameterList([torch.randn(32, embed_dim) for _ in feature_dims])
+        self.queries = nn.ParameterList([nn.Parameter(torch.randn(32, embed_dim)) for _ in feature_dims])
         self.norms = nn.ModuleList([create_norm_layer('layernorm2d', dim) for dim in feature_dims])
         self.encoder = nn.Sequential(*[TransformerBlock(embed_dim, **kwargs) for _ in range(depth)])
         self.head_norm = nn.LayerNorm(embed_dim)
