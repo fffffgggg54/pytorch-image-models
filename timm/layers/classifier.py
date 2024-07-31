@@ -423,8 +423,8 @@ class FeaturePyramid2Token(nn.Module):
     def __init__(
         self,
         model,
-        embed_dim = 512,
-        depth = 12,
+        embed_dim = 384,
+        depth = 8,
         num_classes = None,
         **kwargs
     ):
