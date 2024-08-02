@@ -1,10 +1,11 @@
 from .activations import *
 from .adaptive_avgmax_pool import \
     adaptive_avgmax_pool2d, select_adaptive_pool2d, AdaptiveAvgMaxPool2d, SelectAdaptivePool2d
+from .attention2d import MultiQueryAttention2d, Attention2d, MultiQueryAttentionV2
 from .attention_pool import AttentionPoolLatent
 from .attention_pool2d import AttentionPool2d, RotAttentionPool2d, RotaryEmbedding
-from .blur_pool import BlurPool2d
-from .classifier import ClassifierHead, create_classifier, NormMlpClassifierHead, PyramidFeatureAggregationModel
+from .blur_pool import BlurPool2d, create_aa
+from .classifier import ClassifierHead, create_classifier, NormMlpClassifierHead, PyramidFeatureAggregationModel, FeaturePyramid2Token
 from .cond_conv2d import CondConv2d, get_condconv_initializer
 from .config import is_exportable, is_scriptable, is_no_jit, use_fused_attn, \
     set_exportable, set_scriptable, set_no_jit, set_layer_config, set_fused_attn
@@ -24,7 +25,9 @@ from .filter_response_norm import FilterResponseNormTlu2d, FilterResponseNormAct
 from .format import Format, get_channel_dim, get_spatial_dim, nchw_to, nhwc_to
 from .gather_excite import GatherExcite
 from .global_context import GlobalContext
+from .grid import ndgrid, meshgrid
 from .helpers import to_ntuple, to_2tuple, to_3tuple, to_4tuple, make_divisible, extend_tuple
+from .hybrid_embed import HybridEmbed, HybridEmbedWithSize
 from .inplace_abn import InplaceAbn
 from .linear import Linear
 from .mixed_conv2d import MixedConv2d
@@ -46,7 +49,7 @@ from .pos_embed_sincos import pixel_freq_bands, freq_bands, build_sincos2d_pos_e
 from .squeeze_excite import SEModule, SqueezeExcite, EffectiveSEModule, EffectiveSqueezeExcite
 from .selective_kernel import SelectiveKernel
 from .separable_conv import SeparableConv2d, SeparableConvNormAct
-from .space_to_depth import SpaceToDepthModule, SpaceToDepth, DepthToSpace
+from .space_to_depth import SpaceToDepth, DepthToSpace
 from .split_attn import SplitAttn
 from .split_batchnorm import SplitBatchNorm2d, convert_splitbn_model
 from .std_conv import StdConv2d, StdConv2dSame, ScaledStdConv2d, ScaledStdConv2dSame

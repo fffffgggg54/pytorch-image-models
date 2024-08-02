@@ -190,6 +190,13 @@ def load_state_dict_from_hf(model_id: str, filename: str = HF_WEIGHTS_NAME):
     return torch.load(cached_file, map_location='cpu')
 
 
+def load_custom_from_hf(model_id: str, filename: str, model: torch.nn.Module):
+    assert has_hf_hub(True)
+    hf_model_id, hf_revision = hf_split(model_id)
+    cached_file = hf_hub_download(hf_model_id, filename=filename, revision=hf_revision)
+    return model.load_pretrained(cached_file)
+
+
 def save_config_for_hf(
         model,
         config_path: str,
@@ -278,7 +285,7 @@ def push_to_hf_hub(
         model_config: Optional[dict] = None,
         model_card: Optional[dict] = None,
         model_args: Optional[dict] = None,
-        safe_serialization: Union[bool, Literal["both"]] = False,
+        safe_serialization: Union[bool, Literal["both"]] = 'both',
 ):
     """
     Arguments:
