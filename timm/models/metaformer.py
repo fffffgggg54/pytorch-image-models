@@ -250,6 +250,7 @@ class SepConv(nn.Module):
             bias=False,
             kernel_size=7,
             padding=3,
+            attn=nn.Identity,
             **kwargs
     ):
         super().__init__()
@@ -259,6 +260,7 @@ class SepConv(nn.Module):
         self.dwconv = nn.Conv2d(
             mid_channels, mid_channels, kernel_size=kernel_size,
             padding=padding, groups=mid_channels, bias=bias)  # depthwise conv
+        self.attn = create_attn(attn, mid_channels, act_layer=act_layer, **kwargs)
         self.act2 = act2_layer()
         self.pwconv2 = nn.Conv2d(mid_channels, dim, kernel_size=1, bias=bias)
 
@@ -266,6 +268,7 @@ class SepConv(nn.Module):
         x = self.pwconv1(x)
         x = self.act1(x)
         x = self.dwconv(x)
+        x = self.attn(x)
         x = self.act2(x)
         x = self.pwconv2(x)
         return x
@@ -292,6 +295,33 @@ class VggConv(nn.Module):
         x = self.attn(x)
         return x
 
+class FusedMBConv(nn.Module):
+    def __init__(
+        self,
+        dim,
+        expansion_ratio=2,
+        kernel_size=3,
+        padding=1,
+        bias=False,
+        act_layer=StarReLU,
+        attn = nn.Identity,
+        **kwargs
+    ):
+        super().__init__()
+        mid_channels = int(expansion_ratio * dim)
+        self.fusedconv = nn.Conv2d(
+            dim, mid_channels, kernel_size=kernel_size, padding=padding, bias=bias
+        )
+        self.act = act_layer()
+        self.attn = create_attn(attn, mid_channels, act_layer=act_layer, **kwargs)
+        self.pwconv = nn.Conv2d(mid_channels, dim, kernel_size=1, bias=bias)
+    
+    def forward(self, x):
+        x = self.fusedconv(x)
+        x = self.act(x)
+        x = self.attn(x)
+        x = self.pwconv(x)
+        return x
 
 class Pooling(nn.Module):
     """
@@ -1129,6 +1159,82 @@ def convformer_s18_glumlp(pretrained=False, **kwargs) -> MetaFormer:
         **kwargs)
     return _create_metaformer('convformer_s18_vgg', pretrained=pretrained, **model_kwargs)
 
+@register_model
+def convformer_s18_wideconv(pretrained=False, **kwargs) -> MetaFormer:
+    model_kwargs = dict(
+        depths=[3, 3, 9, 3],
+        dims=[64, 128, 320, 512],
+        token_mixers=SepConv,
+        expansion_ratio=4,
+        norm_layers=LayerNorm2dNoBias,
+        **kwargs)
+    return _create_metaformer('convformer_s18_vgg', pretrained=pretrained, **model_kwargs)
+
+@register_model
+def convformer_s18_se(pretrained=False, **kwargs) -> MetaFormer:
+    model_kwargs = dict(
+        depths=[3, 3, 9, 3],
+        dims=[64, 128, 320, 512],
+        token_mixers=SepConv,
+        attn='se',
+        norm_layers=LayerNorm2dNoBias,
+        **kwargs)
+    return _create_metaformer('convformer_s18_vgg', pretrained=pretrained, **model_kwargs)
+
+@register_model
+def convformer_s18_wideconv_se(pretrained=False, **kwargs) -> MetaFormer:
+    model_kwargs = dict(
+        depths=[3, 3, 9, 3],
+        dims=[64, 128, 320, 512],
+        token_mixers=SepConv,
+        expansion_ratio=4,
+        attn='se',
+        norm_layers=LayerNorm2dNoBias,
+        **kwargs)
+    return _create_metaformer('convformer_s18_vgg', pretrained=pretrained, **model_kwargs)
+
+@register_model
+def convformer_s18_fusedmbconv(pretrained=False, **kwargs) -> MetaFormer:
+    model_kwargs = dict(
+        depths=[3, 3, 9, 3],
+        dims=[64, 128, 320, 512],
+        token_mixers=FusedMBConv,
+        norm_layers=LayerNorm2dNoBias,
+        **kwargs)
+    return _create_metaformer('convformer_s18_vgg', pretrained=pretrained, **model_kwargs)
+
+@register_model
+def convformer_s18_fusedmbconv_se(pretrained=False, **kwargs) -> MetaFormer:
+    model_kwargs = dict(
+        depths=[3, 3, 9, 3],
+        dims=[64, 128, 320, 512],
+        token_mixers=FusedMBConv,
+        attn='se',
+        norm_layers=LayerNorm2dNoBias,
+        **kwargs)
+    return _create_metaformer('convformer_s18_vgg', pretrained=pretrained, **model_kwargs)
+
+
+@register_model
+def convformer_s18_widefusedmbconv(pretrained=False, **kwargs) -> MetaFormer:
+    model_kwargs = dict(
+        depths=[3, 3, 9, 3],
+        dims=[64, 128, 320, 512],
+        token_mixers=FusedMBConv,
+        norm_layers=LayerNorm2dNoBias,
+        **kwargs)
+    return _create_metaformer('convformer_s18_vgg', pretrained=pretrained, **model_kwargs)
+
+@register_model
+def convformer_s18_widefusedmbconv_se(pretrained=False, **kwargs) -> MetaFormer:
+    model_kwargs = dict(
+        depths=[3, 3, 9, 3],
+        dims=[64, 128, 320, 512],
+        token_mixers=FusedMBConv,
+        attn='se',
+        norm_layers=LayerNorm2dNoBias,
+        **kwargs)
+    return _create_metaformer('convformer_s18_vgg', pretrained=pretrained, **model_kwargs)
 
 # experimental scaling (L, L, 3L, L), (L, L, 3KL, L), etc
 @register_model
