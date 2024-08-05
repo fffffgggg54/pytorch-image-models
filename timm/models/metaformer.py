@@ -260,7 +260,7 @@ class SepConv(nn.Module):
         self.dwconv = nn.Conv2d(
             mid_channels, mid_channels, kernel_size=kernel_size,
             padding=padding, groups=mid_channels, bias=bias)  # depthwise conv
-        self.attn = create_attn(attn, mid_channels, act_layer=act_layer, **kwargs)
+        self.attn = create_attn(attn, mid_channels, act_layer=act1_layer, **kwargs)
         self.act2 = act2_layer()
         self.pwconv2 = nn.Conv2d(mid_channels, dim, kernel_size=1, bias=bias)
 
