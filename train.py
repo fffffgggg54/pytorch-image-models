@@ -1006,9 +1006,11 @@ def train_one_epoch(
             with amp_autocast():
                 output = model(input)
                 loss = loss_fn(output, target)
+            acc1 = utils.accuracy(output, target, topk=(1,))[0]
+
             if accum_steps > 1:
                 loss /= accum_steps
-            return loss
+            return loss, acc1
 
         def _backward(_loss):
             if loss_scaler is not None:
@@ -1034,13 +1036,12 @@ def train_one_epoch(
 
         if has_no_sync and not need_update:
             with model.no_sync():
-                loss = _forward()
+                loss, acc1 = _forward()
                 _backward(loss)
         else:
-            loss = _forward()
+            loss, acc1 = _forward()
             _backward(loss)
         
-        acc1 = utils.accuracy(output, target, topk=(1,))[0]
 
         if not args.distributed:
             losses_m.update(loss.item() * accum_steps, input.size(0))
