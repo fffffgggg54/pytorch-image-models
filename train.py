@@ -971,6 +971,7 @@ def train_one_epoch(
     update_time_m = utils.AverageMeter()
     data_time_m = utils.AverageMeter()
     losses_m = utils.AverageMeter()
+    top1_m = utils.AverageMeter()
 
     model.train()
 
@@ -1038,9 +1039,15 @@ def train_one_epoch(
         else:
             loss = _forward()
             _backward(loss)
+        
+        acc1 = utils.accuracy(output, target, topk=(1,))[0]
 
         if not args.distributed:
             losses_m.update(loss.item() * accum_steps, input.size(0))
+        else:
+            acc1 = utils.reduce_tensor(acc1, args.world_size)
+        top1_m.update(acc1.item(), output.size(0))
+
         update_sample_count += input.size(0)
 
         if not need_update:
@@ -1073,6 +1080,7 @@ def train_one_epoch(
                     f'({100. * (update_idx + 1) / updates_per_epoch:>3.0f}%)]  '
                     f'Loss: {losses_m.val:#.3g} ({losses_m.avg:#.3g})  '
                     f'Time: {update_time_m.val:.3f}s, {update_sample_count / update_time_m.val:>7.2f}/s  '
+                    f'Acc@1: {top1_m.val:>7.3f} ({top1_m.avg:>7.3f})  '
                     f'({update_time_m.avg:.3f}s, {update_sample_count / update_time_m.avg:>7.2f}/s)  '
                     f'LR: {lr:.3e}  '
                     f'Data: {data_time_m.val:.3f} ({data_time_m.avg:.3f})'
@@ -1100,7 +1108,7 @@ def train_one_epoch(
     if hasattr(optimizer, 'sync_lookahead'):
         optimizer.sync_lookahead()
 
-    return OrderedDict([('loss', losses_m.avg)])
+    return OrderedDict([('loss', losses_m.avg), ('top1', top1_m.avg)])
 
 
 def validate(
