@@ -1047,7 +1047,7 @@ def train_one_epoch(
             losses_m.update(loss.item() * accum_steps, input.size(0))
         else:
             acc1 = utils.reduce_tensor(acc1, args.world_size)
-        top1_m.update(acc1.item(), output.size(0))
+        top1_m.update(acc1.item(), input.size(0) * args.world_size)
 
         update_sample_count += input.size(0)
 
