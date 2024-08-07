@@ -1006,7 +1006,8 @@ def train_one_epoch(
             with amp_autocast():
                 output = model(input)
                 loss = loss_fn(output, target)
-            acc1 = utils.accuracy(output, target.topk(1, 1)[1], topk=(1,))[0]
+            acc_target = target.topk(1, 1)[1] if mixup_fn is not None or loader.mixup_enabled is True else target
+            acc1 = utils.accuracy(output, , topk=(1,))[0]
 
             if accum_steps > 1:
                 loss /= accum_steps
