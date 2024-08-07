@@ -1006,7 +1006,7 @@ def train_one_epoch(
             with amp_autocast():
                 output = model(input)
                 loss = loss_fn(output, target)
-            acc1 = utils.accuracy(output, target.topk(1, 1), topk=(1,))[0]
+            acc1 = utils.accuracy(output, target.topk(1, 1)[1], topk=(1,))[0]
 
             if accum_steps > 1:
                 loss /= accum_steps
