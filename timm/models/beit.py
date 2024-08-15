@@ -86,6 +86,7 @@ class Attention(nn.Module):
             dim: int,
             num_heads: int = 8,
             qkv_bias: bool = False,
+            qkv_bias_separate: bool = False,
             attn_drop: float = 0.,
             proj_drop: float = 0.,
             window_size: Optional[Tuple[int, int]] = None,
@@ -99,6 +100,7 @@ class Attention(nn.Module):
         all_head_dim = head_dim * self.num_heads
         self.scale = head_dim ** -0.5
         self.fused_attn = use_fused_attn()
+        self.qkv_bias_separate = qkv_bias_separate
 
         self.qkv = nn.Linear(dim, all_head_dim * 3, bias=False)
         if qkv_bias:
@@ -136,8 +138,15 @@ class Attention(nn.Module):
     def forward(self, x, shared_rel_pos_bias: Optional[torch.Tensor] = None):
         B, N, C = x.shape
 
-        qkv_bias = torch.cat((self.q_bias, self.k_bias, self.v_bias)) if self.q_bias is not None else None
-        qkv = F.linear(input=x, weight=self.qkv.weight, bias=qkv_bias)
+        if self.q_bias is None:
+            qkv = self.qkv(x)
+        else:
+            qkv_bias = torch.cat((self.q_bias, self.k_bias, self.v_bias))
+            if self.qkv_bias_separate:
+                qkv = self.qkv(x)
+                qkv += qkv_bias
+            else:
+                qkv = F.linear(x, weight=self.qkv.weight, bias=qkv_bias)
         qkv = qkv.reshape(B, N, 3, self.num_heads, -1).permute(2, 0, 3, 1, 4)
         q, k, v = qkv.unbind(0)  # B, num_heads, N, head_dim
 
@@ -291,7 +300,7 @@ class Beit(nn.Module):
         super().__init__()
         self.num_classes = num_classes
         self.global_pool = global_pool
-        self.num_features = self.embed_dim = embed_dim  # num_features for consistency with other models
+        self.num_features = self.head_hidden_size = self.embed_dim = embed_dim  # for consistency with other models
         self.num_prefix_tokens = 1
         self.grad_checkpointing = False
 
@@ -392,10 +401,10 @@ class Beit(nn.Module):
         return matcher
 
     @torch.jit.ignore
-    def get_classifier(self):
+    def get_classifier(self) -> nn.Module:
         return self.head
 
-    def reset_classifier(self, num_classes, global_pool=None):
+    def reset_classifier(self, num_classes: int, global_pool: Optional[str] = None):
         self.num_classes = num_classes
         if global_pool is not None:
             self.global_pool = global_pool
@@ -404,10 +413,10 @@ class Beit(nn.Module):
     def forward_intermediates(
             self,
             x: torch.Tensor,
-            indices: Optional[Union[int, List[int], Tuple[int]]] = None,
+            indices: Optional[Union[int, List[int]]] = None,
             return_prefix_tokens: bool = False,
             norm: bool = False,
-            stop_early: bool = True,
+            stop_early: bool = False,
             output_fmt: str = 'NCHW',
             intermediates_only: bool = False,
     ) -> Union[List[torch.Tensor], Tuple[torch.Tensor, List[torch.Tensor]]]:
@@ -424,7 +433,7 @@ class Beit(nn.Module):
         Returns:
 
         """
-        assert output_fmt in ('NCHW', 'NLC'), 'Output format for ViT features must be one of NCHW or NLC.'
+        assert output_fmt in ('NCHW', 'NLC'), 'Output format must be one of NCHW or NLC.'
         reshape = output_fmt == 'NCHW'
         intermediates = []
         take_indices, max_index = feature_take_indices(len(self.blocks), indices)
@@ -436,6 +445,7 @@ class Beit(nn.Module):
         if self.pos_embed is not None:
             x = x + self.pos_embed
         x = self.pos_drop(x)
+
         rel_pos_bias = self.rel_pos_bias() if self.rel_pos_bias is not None else None
         if torch.jit.is_scripting() or not stop_early:  # can't slice blocks in torchscript
             blocks = self.blocks
@@ -469,19 +479,19 @@ class Beit(nn.Module):
 
     def prune_intermediate_layers(
             self,
-            n: Union[int, List[int], Tuple[int]] = 1,
+            indices: Union[int, List[int]] = 1,
             prune_norm: bool = False,
             prune_head: bool = True,
     ):
         """ Prune layers not required for specified intermediates.
         """
-        take_indices, max_index = feature_take_indices(len(self.blocks), n)
+        take_indices, max_index = feature_take_indices(len(self.blocks), indices)
         self.blocks = self.blocks[:max_index + 1]  # truncate blocks
         if prune_norm:
             self.norm = nn.Identity()
         if prune_head:
             self.fc_norm = nn.Identity()
-            self.head = nn.Identity()
+            self.reset_classifier(0, '')
         return take_indices
 
     def forward_features(self, x):
@@ -590,7 +600,7 @@ default_cfgs = generate_default_cfgs({
 })
 
 
-def _beit_checkpoint_filter_fn(state_dict, model, interpolation='bicubic', antialias=True):
+def checkpoint_filter_fn(state_dict, model, interpolation='bicubic', antialias=True):
     state_dict = state_dict.get('model', state_dict)
     state_dict = state_dict.get('module', state_dict)
     # beit v2 didn't strip module
@@ -636,7 +646,7 @@ def _create_beit(variant, pretrained=False, **kwargs):
     out_indices = kwargs.pop('out_indices', 3)
     model = build_model_with_cfg(
         Beit, variant, pretrained,
-        pretrained_filter_fn=_beit_checkpoint_filter_fn,
+        pretrained_filter_fn=checkpoint_filter_fn,
         feature_cfg=dict(out_indices=out_indices, feature_cls='getter'),
         **kwargs,
     )

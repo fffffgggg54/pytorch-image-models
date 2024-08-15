@@ -11,13 +11,13 @@ Hacked together by / Copyright 2020 Ross Wightman
 from collections import OrderedDict, defaultdict
 from copy import deepcopy
 from functools import partial
-from typing import Dict, List, Optional, Sequence, Set, Tuple, Union
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn
 from torch.utils.checkpoint import checkpoint
 
-from timm.layers import Format
+from timm.layers import Format, _assert
 
 
 __all__ = [
@@ -26,44 +26,45 @@ __all__ = [
 ]
 
 
-def _take_indices(
-        num_blocks: int,
-        n: Optional[Union[int, List[int], Tuple[int]]],
-) -> Tuple[Set[int], int]:
-    if isinstance(n, int):
-        assert n >= 0
-        take_indices = {x for x in range(num_blocks - n, num_blocks)}
-    else:
-        take_indices = {num_blocks + idx if idx < 0 else idx for idx in n}
-    return take_indices, max(take_indices)
-
-
-def _take_indices_jit(
-        num_blocks: int,
-        n: Union[int, List[int], Tuple[int]],
-) -> Tuple[List[int], int]:
-    if isinstance(n, int):
-        assert n >= 0
-        take_indices = [num_blocks - n + i for i in range(n)]
-    elif isinstance(n, tuple):
-        # splitting this up is silly, but needed for torchscript type resolution of n
-        take_indices = [num_blocks + idx if idx < 0 else idx for idx in n]
-    else:
-        take_indices = [num_blocks + idx if idx < 0 else idx for idx in n]
-    return take_indices, max(take_indices)
-
-
 def feature_take_indices(
-        num_blocks: int,
-        indices: Optional[Union[int, List[int], Tuple[int]]] = None,
+        num_features: int,
+        indices: Optional[Union[int, List[int]]] = None,
+        as_set: bool = False,
 ) -> Tuple[List[int], int]:
+    """ Determine the absolute feature indices to 'take' from.
+
+    Note: This function can be called in forwar() so must be torchscript compatible,
+    which requires some incomplete typing and workaround hacks.
+
+    Args:
+        num_features: total number of features to select from
+        indices: indices to select,
+          None -> select all
+          int -> select last n
+          list/tuple of int -> return specified (-ve indices specify from end)
+        as_set: return as a set
+
+    Returns:
+        List (or set) of absolute (from beginning) indices, Maximum index
+    """
     if indices is None:
-        indices = num_blocks  # all blocks if None
-    if torch.jit.is_scripting():
-        return _take_indices_jit(num_blocks, indices)
+        indices = num_features  # all features if None
+
+    if isinstance(indices, int):
+        # convert int -> last n indices
+        _assert(0 < indices <= num_features, f'last-n ({indices}) is out of range (1 to {num_features})')
+        take_indices = [num_features - indices + i for i in range(indices)]
     else:
-        # NOTE non-jit returns Set[int] instead of List[int] but torchscript can't handle that anno
-        return _take_indices(num_blocks, indices)
+        take_indices: List[int] = []
+        for i in indices:
+            idx = num_features + i if i < 0 else i
+            _assert(0 <= idx < num_features, f'feature index {idx} is out of range (0 to {num_features - 1})')
+            take_indices.append(idx)
+
+    if not torch.jit.is_scripting() and as_set:
+        return set(take_indices), max(take_indices)
+
+    return take_indices, max(take_indices)
 
 
 def _out_indices_as_tuple(x: Union[int, Tuple[int, ...]]) -> Tuple[int, ...]:
@@ -158,26 +159,30 @@ class FeatureHooks:
 
     def __init__(
             self,
-            hooks: Sequence[str],
+            hooks: Sequence[Union[str, Dict]],
             named_modules: dict,
             out_map: Sequence[Union[int, str]] = None,
             default_hook_type: str = 'forward',
     ):
         # setup feature hooks
         self._feature_outputs = defaultdict(OrderedDict)
+        self._handles = []
         modules = {k: v for k, v in named_modules}
         for i, h in enumerate(hooks):
-            hook_name = h['module']
+            hook_name = h if isinstance(h, str) else h['module']
             m = modules[hook_name]
             hook_id = out_map[i] if out_map else hook_name
             hook_fn = partial(self._collect_output_hook, hook_id)
-            hook_type = h.get('hook_type', default_hook_type)
+            hook_type = default_hook_type
+            if isinstance(h, dict):
+                hook_type = h.get('hook_type', default_hook_type)
             if hook_type == 'forward_pre':
-                m.register_forward_pre_hook(hook_fn)
+                handle = m.register_forward_pre_hook(hook_fn)
             elif hook_type == 'forward':
-                m.register_forward_hook(hook_fn)
+                handle = m.register_forward_hook(hook_fn)
             else:
                 assert False, "Unsupported hook type"
+            self._handles.append(handle)
 
     def _collect_output_hook(self, hook_id, *args):
         x = args[-1]  # tensor we want is last argument, output for fwd, input for fwd_pre
@@ -361,7 +366,7 @@ class FeatureHookNet(nn.ModuleDict):
             out_map: Optional[Sequence[Union[int, str]]] = None,
             return_dict: bool = False,
             output_fmt: str = 'NCHW',
-            no_rewrite: bool = False,
+            no_rewrite: Optional[bool] = None,
             flatten_sequential: bool = False,
             default_hook_type: str = 'forward',
     ):
@@ -383,7 +388,8 @@ class FeatureHookNet(nn.ModuleDict):
         self.return_dict = return_dict
         self.output_fmt = Format(output_fmt)
         self.grad_checkpointing = False
-
+        if no_rewrite is None:
+            no_rewrite = not flatten_sequential
         layers = OrderedDict()
         hooks = []
         if no_rewrite:
@@ -459,13 +465,12 @@ class FeatureGetterNet(nn.ModuleDict):
                 out_indices,
                 prune_norm=not norm,
             )
-            out_indices = list(out_indices)
         self.feature_info = _get_feature_info(model, out_indices)
         self.model = model
         self.out_indices = out_indices
         self.out_map = out_map
         self.return_dict = return_dict
-        self.output_fmt = output_fmt
+        self.output_fmt = Format(output_fmt)
         self.norm = norm
 
     def forward(self, x):

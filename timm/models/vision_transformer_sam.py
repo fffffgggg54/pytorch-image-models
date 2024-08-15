@@ -182,6 +182,7 @@ class Attention(nn.Module):
 
         x = x.view(B, self.num_heads, N, -1).transpose(1, 2).reshape(B, N, -1)
         x = self.proj(x)
+        x = self.proj_drop(x)
         x = x.view(B, H, W, -1)
         return x
 
@@ -396,8 +397,7 @@ class VisionTransformerSAM(nn.Module):
 
         self.num_classes = num_classes
         self.global_pool = global_pool
-        # num_features for consistency with other models
-        self.num_features = self.embed_dim = embed_dim
+        self.num_features = self.head_hidden_size = self.embed_dim = embed_dim  # for consistency with other models
         self.grad_checkpointing = False
 
         self.patch_embed = embed_layer(
@@ -534,18 +534,18 @@ class VisionTransformerSAM(nn.Module):
         self.grad_checkpointing = enable
 
     @torch.jit.ignore
-    def get_classifier(self):
+    def get_classifier(self) -> nn.Module:
         return self.head
 
-    def reset_classifier(self, num_classes=0, global_pool=None):
+    def reset_classifier(self, num_classes: int, global_pool: Optional[str] = None):
         self.head.reset(num_classes, global_pool)
 
     def forward_intermediates(
             self,
             x: torch.Tensor,
-            indices: Union[int, List[int], Tuple[int]] = None,
+            indices: Optional[Union[int, List[int]]] = None,
             norm: bool = False,
-            stop_early: bool = True,
+            stop_early: bool = False,
             output_fmt: str = 'NCHW',
             intermediates_only: bool = False,
     ) -> Union[List[torch.Tensor], Tuple[torch.Tensor, List[torch.Tensor]]]:
@@ -573,6 +573,7 @@ class VisionTransformerSAM(nn.Module):
         x = self.pos_drop(x)
         x = self.patch_drop(x)
         x = self.norm_pre(x)
+
         if torch.jit.is_scripting() or not stop_early:  # can't slice blocks in torchscript
             blocks = self.blocks
         else:
@@ -597,19 +598,19 @@ class VisionTransformerSAM(nn.Module):
 
     def prune_intermediate_layers(
             self,
-            n: Union[int, List[int], Tuple[int]] = None,
+            indices: Optional[Union[int, List[int]]] = None,
             prune_norm: bool = False,
             prune_head: bool = True,
     ):
         """ Prune layers not required for specified intermediates.
         """
-        take_indices, max_index = feature_take_indices(len(self.blocks), n)
+        take_indices, max_index = feature_take_indices(len(self.blocks), indices)
         self.blocks = self.blocks[:max_index + 1]  # truncate blocks
         if prune_norm:
             # neck is being treated as equivalent to final norm here
             self.neck = nn.Identity()
         if prune_head:
-            self.head = nn.Identity()
+            self.reset_classifier(0, '')
         return take_indices
 
     def forward_features(self, x):
