@@ -498,7 +498,7 @@ class TrainBenchmarkRunner(BenchmarkRunner):
         _logger.info(
             f"Train benchmark of {self.model_name} done. "
             f"{results['samples_per_sec']:.2f} samples/sec, {results['step_time']:.2f} ms/sample")
-
+        del self.model
         return results
 
 
