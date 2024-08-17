@@ -7,6 +7,7 @@ Hacked together by Ross Wightman (https://github.com/rwightman)
 """
 import argparse
 import csv
+import gc
 import json
 import logging
 import time
@@ -555,6 +556,7 @@ def _try_run(
     while batch_size:
         try:
             torch.cuda.empty_cache()
+            gc.collect()
             bench = bench_fn(model_name=model_name, batch_size=batch_size, **bench_kwargs)
             results = bench.run()
             return results
