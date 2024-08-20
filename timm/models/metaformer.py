@@ -1316,17 +1316,16 @@ def convformer_s18_wideconv_eca(pretrained=False, **kwargs) -> MetaFormer:
 
 # wider conv blocks (expansion=4) and eca module with mlp: 
 @register_model
-def convformer_s18_wideconv_ecamlp(pretrained=False, **kwargs) -> MetaFormer:
+def convformer_s18_wideconv_ecam(pretrained=False, **kwargs) -> MetaFormer:
     model_kwargs = dict(
         depths=[3, 3, 9, 3],
         dims=[64, 128, 320, 512],
         token_mixers=SepConv,
         expansion_ratio=4,
         attn='eca',
-        use_mlp=True,
         norm_layers=LayerNorm2dNoBias,
         **kwargs)
-    return _create_metaformer('convformer_s18_wideconv_ecamlp', pretrained=pretrained, **model_kwargs)
+    return _create_metaformer('convformer_s18_wideconv_ecam', pretrained=pretrained, **model_kwargs)
     
 # wider conv blocks (expansion=4) and eca module: 
 @register_model
@@ -1344,7 +1343,7 @@ def convformer_s18_wideconv_eca_rd_1_4(pretrained=False, **kwargs) -> MetaFormer
 
 # wider conv blocks (expansion=4) and eca module with mlp: 
 @register_model
-def convformer_s18_wideconv_ecamlp_rd_1_4(pretrained=False, **kwargs) -> MetaFormer:
+def convformer_s18_wideconv_ecam_rd_1_4(pretrained=False, **kwargs) -> MetaFormer:
     model_kwargs = dict(
         depths=[3, 3, 9, 3],
         dims=[64, 128, 320, 512],
@@ -1352,7 +1351,6 @@ def convformer_s18_wideconv_ecamlp_rd_1_4(pretrained=False, **kwargs) -> MetaFor
         expansion_ratio=4,
         attn='eca',
         rd_ratio=1./4,
-        use_mlp=True,
         norm_layers=LayerNorm2dNoBias,
         **kwargs)
-    return _create_metaformer('convformer_s18_wideconv_ecamlp_rd_1_4', pretrained=pretrained, **model_kwargs)
+    return _create_metaformer('convformer_s18_wideconv_ecam_rd_1_4', pretrained=pretrained, **model_kwargs)
