@@ -1396,7 +1396,7 @@ def convformer_s18_wideconv_norm_se(pretrained=False, **kwargs) -> MetaFormer:
         norm_layers=LayerNorm2dNoBias,
         conv_norm=LayerNorm2dNoBias,
         **kwargs)
-    return _create_metaformer('convformer_s18_wideconv_norm', pretrained=pretrained, **model_kwargs)
+    return _create_metaformer('convformer_s18_wideconv_norm_se', pretrained=pretrained, **model_kwargs)
     
 # wider conv blocks (expansion=4) with more typical norm and se: 
 @register_model
@@ -1410,4 +1410,4 @@ def convformer_s18_wideconv_normstd_se(pretrained=False, **kwargs) -> MetaFormer
         norm_layers=LayerNorm2d,
         conv_norm=LayerNorm2d,
         **kwargs)
-    return _create_metaformer('convformer_s18_wideconv_normstd', pretrained=pretrained, **model_kwargs)
+    return _create_metaformer('convformer_s18_wideconv_normstd_se', pretrained=pretrained, **model_kwargs)
