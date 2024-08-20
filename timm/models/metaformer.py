@@ -251,15 +251,18 @@ class SepConv(nn.Module):
             kernel_size=7,
             padding=3,
             attn=nn.Identity,
+            conv_norm=None,
             **kwargs
     ):
         super().__init__()
         mid_channels = int(expansion_ratio * dim)
         self.pwconv1 = nn.Conv2d(dim, mid_channels, kernel_size=1, bias=bias)
+        self.norm1 = conv_norm() if conv_norm else nn.Identity()
         self.act1 = act1_layer()
         self.dwconv = nn.Conv2d(
             mid_channels, mid_channels, kernel_size=kernel_size,
             padding=padding, groups=mid_channels, bias=bias)  # depthwise conv
+        self.norm2 = conv_norm() if conv_norm else nn.Identity()
         self.attn = create_attn(attn, mid_channels, act_layer=act1_layer, **kwargs)
         self.act2 = act2_layer()
         self.pwconv2 = nn.Conv2d(mid_channels, dim, kernel_size=1, bias=bias)
@@ -1354,3 +1357,57 @@ def convformer_s18_wideconv_ecam_rd_1_4(pretrained=False, **kwargs) -> MetaForme
         norm_layers=LayerNorm2dNoBias,
         **kwargs)
     return _create_metaformer('convformer_s18_wideconv_ecam_rd_1_4', pretrained=pretrained, **model_kwargs)
+    
+# wider conv blocks (expansion=4) with norm: 
+@register_model
+def convformer_s18_wideconv_norm(pretrained=False, **kwargs) -> MetaFormer:
+    model_kwargs = dict(
+        depths=[3, 3, 9, 3],
+        dims=[64, 128, 320, 512],
+        token_mixers=SepConv,
+        expansion_ratio=4,
+        norm_layers=LayerNorm2dNoBias,
+        conv_norm=LayerNorm2dNoBias,
+        **kwargs)
+    return _create_metaformer('convformer_s18_wideconv_norm', pretrained=pretrained, **model_kwargs)
+    
+# wider conv blocks (expansion=4) with more typical norm: 
+@register_model
+def convformer_s18_wideconv_normstd(pretrained=False, **kwargs) -> MetaFormer:
+    model_kwargs = dict(
+        depths=[3, 3, 9, 3],
+        dims=[64, 128, 320, 512],
+        token_mixers=SepConv,
+        expansion_ratio=4,
+        norm_layers=LayerNorm2d,
+        conv_norm=LayerNorm2d,
+        **kwargs)
+    return _create_metaformer('convformer_s18_wideconv_normstd', pretrained=pretrained, **model_kwargs)
+    
+# wider conv blocks (expansion=4) with norm and se: 
+@register_model
+def convformer_s18_wideconv_norm_se(pretrained=False, **kwargs) -> MetaFormer:
+    model_kwargs = dict(
+        depths=[3, 3, 9, 3],
+        dims=[64, 128, 320, 512],
+        token_mixers=SepConv,
+        expansion_ratio=4,
+        attn='se',
+        norm_layers=LayerNorm2dNoBias,
+        conv_norm=LayerNorm2dNoBias,
+        **kwargs)
+    return _create_metaformer('convformer_s18_wideconv_norm', pretrained=pretrained, **model_kwargs)
+    
+# wider conv blocks (expansion=4) with more typical norm and se: 
+@register_model
+def convformer_s18_wideconv_normstd_se(pretrained=False, **kwargs) -> MetaFormer:
+    model_kwargs = dict(
+        depths=[3, 3, 9, 3],
+        dims=[64, 128, 320, 512],
+        token_mixers=SepConv,
+        expansion_ratio=4,
+        attn='se',
+        norm_layers=LayerNorm2d,
+        conv_norm=LayerNorm2d,
+        **kwargs)
+    return _create_metaformer('convformer_s18_wideconv_normstd', pretrained=pretrained, **model_kwargs)
