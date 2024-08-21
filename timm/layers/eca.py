@@ -59,7 +59,7 @@ class EcaModule(nn.Module):
     """
     def __init__(
             self, channels=None, kernel_size=3, gamma=2, beta=1, act_layer=None, gate_layer='sigmoid',
-            rd_ratio=1/8, rd_channels=None, rd_divisor=8, use_mlp=False):
+            rd_ratio=1/8, rd_channels=None, rd_divisor=8, use_mlp=False, **_):
         super(EcaModule, self).__init__()
         if channels is not None:
             t = int(abs(math.log(channels, 2) + beta) / gamma)
@@ -118,7 +118,7 @@ class CecaModule(nn.Module):
         gate_layer: gating non-linearity to use
     """
 
-    def __init__(self, channels=None, kernel_size=3, gamma=2, beta=1, act_layer=None, gate_layer='sigmoid'):
+    def __init__(self, channels=None, kernel_size=3, gamma=2, beta=1, act_layer=None, gate_layer='sigmoid', **_):
         super(CecaModule, self).__init__()
         if channels is not None:
             t = int(abs(math.log(channels, 2) + beta) / gamma)
