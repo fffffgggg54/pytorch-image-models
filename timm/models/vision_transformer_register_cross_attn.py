@@ -10,7 +10,7 @@ import torch.nn.functional as F
 from torch.jit import Final
 
 from timm.data import IMAGENET_INCEPTION_MEAN, IMAGENET_INCEPTION_STD
-from timm.layers import DropPath, Mlp, use_fused_attn,
+from timm.layers import DropPath, Mlp, use_fused_attn
 from timm.models.vision_transformer import Attention, VisionTransformer
 from ._builder import build_model_with_cfg
 from ._manipulate import checkpoint_seq
