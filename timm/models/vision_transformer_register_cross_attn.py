@@ -225,7 +225,7 @@ class RegisterCrossAttentionViT(VisionTransformer):
         H, W = self.patch_embed.dynamic_feat_size((H, W))
         # separate img and reg
         x = x[:, -(H*W):, :] # [B, N, C]
-        registers = x[:, :self.reg_tokens.shape[1], :] # [B, K, C]
+        registers = x[:, :self.num_reg_tokens, :] # [B, K, C]
         x = x.transpose(1, 2).reshape(B, -1, H, W) # [B, N, C] -> [B, C, H, W]
         if self.grad_checkpointing and not torch.jit.is_scripting():
             x, registers = checkpoint_seq(self.blocks, (x, registers))
@@ -278,7 +278,7 @@ def _create_registercrossattentionvit(variant: str, pretrained: bool = False, **
 @register_model
 def vit_tiny_patch16_reg4_ca_224(pretrained: bool = False, **kwargs) -> RegisterCrossAttentionViT:
     model_args = dict(patch_size=16, embed_dim=192, depth=12, num_heads=3)
-    model = _create_registercrossattentionvit('vit_tiny_patch16_reg4_ca_22', pretrained=pretrained, **dict(model_args, **kwargs))
+    model = _create_registercrossattentionvit('vit_tiny_patch16_reg4_ca_224', pretrained=pretrained, **dict(model_args, **kwargs))
     return model
     
 @register_model
