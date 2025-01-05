@@ -276,19 +276,19 @@ def _create_registercrossattentionvit(variant: str, pretrained: bool = False, **
     )
 
 @register_model
-def vit_tiny_patch16_reg4_ca_224(pretrained: bool = False, **kwargs) -> DependencyViT:
+def vit_tiny_patch16_reg4_ca_224(pretrained: bool = False, **kwargs) -> RegisterCrossAttentionViT:
     model_args = dict(patch_size=16, embed_dim=192, depth=12, num_heads=3)
     model = _create_registercrossattentionvit('vit_tiny_patch16_reg4_ca_22', pretrained=pretrained, **dict(model_args, **kwargs))
     return model
     
 @register_model
-def vit_small_patch16_reg4_ca_224(pretrained: bool = False, **kwargs) -> DependencyViT:
+def vit_small_patch16_reg4_ca_224(pretrained: bool = False, **kwargs) -> RegisterCrossAttentionViT:
     model_args = dict(patch_size=16, embed_dim=384, depth=12, num_heads=6)
     model = _create_registercrossattentionvit('vit_small_patch16_reg4_ca_224', pretrained=pretrained, **dict(model_args, **kwargs))
     return model
 
 @register_model
-def vit_base_patch16_reg4_ca_224(pretrained: bool = False, **kwargs) -> DependencyViT:
+def vit_base_patch16_reg4_ca_224(pretrained: bool = False, **kwargs) -> RegisterCrossAttentionViT:
     model_args = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12)
     model = _create_registercrossattentionvit('vit_base_patch16_reg4_ca_224', pretrained=pretrained, **dict(model_args, **kwargs))
     return model
