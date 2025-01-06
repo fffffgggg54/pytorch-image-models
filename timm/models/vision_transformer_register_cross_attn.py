@@ -239,9 +239,10 @@ class RegisterCrossAttentionViT(VisionTransformer):
         if self.cls_token is not None:
             to_cat.append(self.cls_token.expand(x.shape[0], -1, -1))
         if self.reg_token is not None:
-            reg_token = self.reg_token
             if self.variable_reg_token_count and self.training:
-                reg_token = reg_token[:, :torch.randint(1, self.num_reg_tokens, (1,)), :]
+                reg_token = self.reg_token[:, :torch.randint(1, self.num_reg_tokens, (1,)).item(), :]
+            else:
+                reg_token = self.reg_token
             self.num_prefix_tokens = 1 if self.has_class_token else 0
             self.num_prefix_tokens += reg_token.shape[1]
             to_cat.append(reg_token.expand(x.shape[0], -1, -1))
