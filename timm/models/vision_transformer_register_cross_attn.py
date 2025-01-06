@@ -245,6 +245,7 @@ class RegisterCrossAttentionViT(VisionTransformer):
                 reg_token = self.reg_token
             self.num_prefix_tokens = 1 if self.has_class_token else 0
             self.num_prefix_tokens += reg_token.shape[1]
+            self.num_reg_tokens = reg_token.shape[1]
             to_cat.append(reg_token.expand(x.shape[0], -1, -1))
 
         if self.no_embed_class:
