@@ -200,6 +200,7 @@ class RegisterCrossAttentionViT(VisionTransformer):
     def __init__(
         self,
         reg_tokens: int = 4,
+        variable_reg_token_count: bool = False,
         *args,
         **kwargs
     ) -> None:
@@ -215,7 +216,51 @@ class RegisterCrossAttentionViT(VisionTransformer):
             no_embed_class=True,
             reg_tokens=reg_tokens,
         )
+        self.variable_reg_token_count = variable_reg_token_count
+    
+    def _pos_embed(self, x: torch.Tensor) -> torch.Tensor:
+        if self.pos_embed is None:
+            return x.view(x.shape[0], -1, x.shape[-1])
 
+        if self.dynamic_img_size:
+            B, H, W, C = x.shape
+            prev_grid_size = self.patch_embed.grid_size
+            pos_embed = resample_abs_pos_embed(
+                self.pos_embed,
+                new_size=(H, W),
+                old_size=prev_grid_size,
+                num_prefix_tokens=0 if self.no_embed_class else self.num_prefix_tokens,
+            )
+            x = x.view(B, -1, C)
+        else:
+            pos_embed = self.pos_embed
+
+        to_cat = []
+        if self.cls_token is not None:
+            to_cat.append(self.cls_token.expand(x.shape[0], -1, -1))
+        if self.reg_token is not None:
+            reg_token = self.reg_token
+            if self.variable_reg_token_count and self.training:
+                reg_token = reg_token[:, :torch.randint(1, self.num_reg_tokens, (1,)), :]
+            self.self.num_prefix_tokens = 1 if self.class_token else 0
+            self.num_prefix_tokens += reg_tokens
+            to_cat.append(reg_token.expand(x.shape[0], -1, -1))
+
+        if self.no_embed_class:
+            # deit-3, updated JAX (big vision)
+            # position embedding does not overlap with class token, add then concat
+            x = x + pos_embed
+            if to_cat:
+                x = torch.cat(to_cat + [x], dim=1)
+        else:
+            # original timm, JAX, and deit vit impl
+            # pos_embed has entry for class token, concat then add
+            if to_cat:
+                x = torch.cat(to_cat + [x], dim=1)
+            x = x + pos_embed
+
+        return self.pos_drop(x)
+    
     def forward_features(self, x: torch.Tensor) -> torch.Tensor:
         B, _, H, W = x.shape
         x = self.patch_embed(x)
@@ -290,5 +335,11 @@ def vit_small_patch16_reg4_ca_224(pretrained: bool = False, **kwargs) -> Registe
 @register_model
 def vit_base_patch16_reg4_ca_224(pretrained: bool = False, **kwargs) -> RegisterCrossAttentionViT:
     model_args = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12)
+    model = _create_registercrossattentionvit('vit_base_patch16_reg4_ca_224', pretrained=pretrained, **dict(model_args, **kwargs))
+    return model
+    
+@register_model
+def vit_base_patch16_reg64var_ca_224(pretrained: bool = False, **kwargs) -> RegisterCrossAttentionViT:
+    model_args = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, reg_tokens=64, variable_reg_token_count=True)
     model = _create_registercrossattentionvit('vit_base_patch16_reg4_ca_224', pretrained=pretrained, **dict(model_args, **kwargs))
     return model
