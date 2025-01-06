@@ -304,6 +304,7 @@ default_cfgs = {
     'vit_tiny_patch16_reg4_ca_224.untrained': _cfg(url=''),
     'vit_small_patch16_reg4_ca_224.untrained': _cfg(url=''),
     'vit_base_patch16_reg4_ca_224.untrained': _cfg(url=''),
+    'vit_base_patch16_reg64var_ca_224.untrained': _cfg(url=''),
 }
 
 
