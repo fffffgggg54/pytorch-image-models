@@ -257,8 +257,8 @@ class RegisterCrossAttentionBlockV2(nn.Module):
         self.ls4 = LayerScale(dim, init_values=init_values) if init_values else nn.Identity()
         self.drop_path4 = DropPath(drop_path) if drop_path > 0. else nn.Identity()
         
-        self.norm4 = norm_layer(dim)
         self.norm5 = norm_layer(dim)
+        self.norm6 = norm_layer(dim)
         self.attn3 = CrossAttention(
             dim,
             num_heads=num_heads,
@@ -269,10 +269,10 @@ class RegisterCrossAttentionBlockV2(nn.Module):
             proj_drop=proj_drop,
             norm_layer=norm_layer,
         )
-        self.ls4 = LayerScale(dim, init_values=init_values) if init_values else nn.Identity()
-        self.drop_path4 = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+        self.ls5 = LayerScale(dim, init_values=init_values) if init_values else nn.Identity()
+        self.drop_path5 = DropPath(drop_path) if drop_path > 0. else nn.Identity()
 
-        self.norm6 = norm_layer(dim)
+        self.norm7 = norm_layer(dim)
         self.mlp2 = mlp_layer(
             in_features=dim,
             hidden_features=int(dim * mlp_ratio),
@@ -280,8 +280,8 @@ class RegisterCrossAttentionBlockV2(nn.Module):
             bias=proj_bias,
             drop=proj_drop,
         )
-        self.ls5 = LayerScale(dim, init_values=init_values) if init_values else nn.Identity()
-        self.drop_path5 = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+        self.ls6 = LayerScale(dim, init_values=init_values) if init_values else nn.Identity()
+        self.drop_path6 = DropPath(drop_path) if drop_path > 0. else nn.Identity()
         
         
 
@@ -462,6 +462,6 @@ def vit_base_patch16_reg64var_ca_224(pretrained: bool = False, **kwargs) -> Regi
     
 @register_model
 def vit_base_patch16_reg64var_cav2_224(pretrained: bool = False, **kwargs) -> RegisterCrossAttentionViT:
-    model_args = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, reg_tokens=64, variable_reg_token_count=True)
+    model_args = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, reg_tokens=64, variable_reg_token_count=True, block_fn=RegisterCrossAttentionBlockV2)
     model = _create_registercrossattentionvit('vit_base_patch16_reg4_ca_224', pretrained=pretrained, **dict(model_args, **kwargs))
     return model
