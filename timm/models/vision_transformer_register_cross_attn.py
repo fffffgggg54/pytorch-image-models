@@ -194,20 +194,133 @@ class RegisterCrossAttentionBlock(nn.Module):
         x = x.transpose(1, 2).reshape(B, C, H, W)
         return (x, registers)
 
+class RegisterCrossAttentionBlockV2(nn.Module):
+    def __init__(
+            self,
+            dim: int,
+            num_heads: int,
+            mlp_ratio: float = 4.,
+            qkv_bias: bool = True,
+            qk_norm: bool = False,
+            proj_bias: bool = True,
+            attn_drop: float = 0.,
+            proj_drop: float = 0.,
+            init_values: Optional[float] = None,
+            drop_path: float = 0.,
+            act_layer: nn.Module = nn.GELU,
+            norm_layer: nn.Module = nn.LayerNorm,
+            mlp_layer: nn.Module = Mlp,
+    ) -> None:
+        super().__init__()
 
+        self.norm1 = norm_layer(dim)
+        self.norm2 = norm_layer(dim)
+        self.attn1 = CrossAttention(
+            dim,
+            num_heads=num_heads,
+            qkv_bias=qkv_bias,
+            qk_norm=qk_norm,
+            proj_bias=proj_bias,
+            attn_drop=attn_drop,
+            proj_drop=proj_drop,
+            norm_layer=norm_layer,
+        )
+        self.ls1 = LayerScale(dim, init_values=init_values) if init_values else nn.Identity()
+        self.drop_path1 = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+        
+        self.token_mixer = nn.Conv2d(dim, dim, kernel_size=7, padding=3, groups=dim, bias=True)  # depthwise conv
+        self.ls2 = LayerScale(dim, init_values=init_values) if init_values else nn.Identity()
+        self.drop_path2 = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+        
+        self.norm3 = norm_layer(dim)
+        self.attn2 = Attention(
+            dim,
+            num_heads=num_heads,
+            qkv_bias=qkv_bias,
+            qk_norm=qk_norm,
+            proj_bias=proj_bias,
+            attn_drop=attn_drop,
+            proj_drop=proj_drop,
+            norm_layer=norm_layer,
+        )
+        self.ls3 = LayerScale(dim, init_values=init_values) if init_values else nn.Identity()
+        self.drop_path3 = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+        
+        self.norm4 = norm_layer(dim)
+        self.mlp1 = mlp_layer(
+            in_features=dim,
+            hidden_features=int(dim * mlp_ratio),
+            act_layer=act_layer,
+            bias=proj_bias,
+            drop=proj_drop,
+        )
+        self.ls4 = LayerScale(dim, init_values=init_values) if init_values else nn.Identity()
+        self.drop_path4 = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+        
+        self.norm4 = norm_layer(dim)
+        self.norm5 = norm_layer(dim)
+        self.attn3 = CrossAttention(
+            dim,
+            num_heads=num_heads,
+            qkv_bias=qkv_bias,
+            qk_norm=qk_norm,
+            proj_bias=proj_bias,
+            attn_drop=attn_drop,
+            proj_drop=proj_drop,
+            norm_layer=norm_layer,
+        )
+        self.ls4 = LayerScale(dim, init_values=init_values) if init_values else nn.Identity()
+        self.drop_path4 = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+
+        self.norm6 = norm_layer(dim)
+        self.mlp2 = mlp_layer(
+            in_features=dim,
+            hidden_features=int(dim * mlp_ratio),
+            act_layer=act_layer,
+            bias=proj_bias,
+            drop=proj_drop,
+        )
+        self.ls5 = LayerScale(dim, init_values=init_values) if init_values else nn.Identity()
+        self.drop_path5 = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+        
+        
+
+    def forward(self, in_tuple: Tuple[torch.Tensor, torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
+        x, registers = in_tuple
+        B, C, H, W = x.shape
+        _, K, _ = registers.shape
+        x = x.flatten(2).transpose(1, 2)  # BCHW -> BNC
+        # shared norm
+        x_norm = self.norm1(x)
+        # update reg branch
+        registers = registers + self.drop_path1(self.ls1(self.attn1(self.norm2(registers), x_norm)))
+        # img branch only
+        x = x + self.drop_path2(self.ls2(self.token_mixer(x_norm.transpose(1, 2).reshape(B, C, H, W)).flatten(2).transpose(1, 2)))
+        # reg branch only
+        registers = registers + self.drop_path3(self.ls3(self.attn2(self.norm3(registers))))
+        # register mlp
+        registers = registers + self.drop_path4(self.ls4(self.mlp1(self.norm4(registers))))
+        # update img branch
+        x = x + self.drop_path5(self.ls5(self.attn3(self.norm5(x), self.norm6(registers))))
+        # cat img and reg to [B, H*W+K, C]
+        x = x + self.drop_path6(self.ls6(self.mlp2(self.norm7(x))))
+        # BNC -> BCHW
+        x = x.transpose(1, 2).reshape(B, C, H, W)
+        return (x, registers)
 
 class RegisterCrossAttentionViT(VisionTransformer):
     def __init__(
         self,
         reg_tokens: int = 4,
         variable_reg_token_count: bool = False,
+        block_fn = RegisterCrossAttentionBlock,
         *args,
         **kwargs
     ) -> None:
         super().__init__(
             *args,
             **kwargs,
-            block_fn = RegisterCrossAttentionBlock,
+            block_fn = block_fn,
             class_token=False,
             global_pool='avg',
             qkv_bias=False,
@@ -343,6 +456,12 @@ def vit_base_patch16_reg4_ca_224(pretrained: bool = False, **kwargs) -> Register
     
 @register_model
 def vit_base_patch16_reg64var_ca_224(pretrained: bool = False, **kwargs) -> RegisterCrossAttentionViT:
+    model_args = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, reg_tokens=64, variable_reg_token_count=True)
+    model = _create_registercrossattentionvit('vit_base_patch16_reg4_ca_224', pretrained=pretrained, **dict(model_args, **kwargs))
+    return model
+    
+@register_model
+def vit_base_patch16_reg64var_cav2_224(pretrained: bool = False, **kwargs) -> RegisterCrossAttentionViT:
     model_args = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, reg_tokens=64, variable_reg_token_count=True)
     model = _create_registercrossattentionvit('vit_base_patch16_reg4_ca_224', pretrained=pretrained, **dict(model_args, **kwargs))
     return model
