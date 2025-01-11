@@ -455,6 +455,12 @@ def vit_base_patch16_reg4_ca_224(pretrained: bool = False, **kwargs) -> Register
     return model
     
 @register_model
+def vit_base_patch16_reg4_cav2_224(pretrained: bool = False, **kwargs) -> RegisterCrossAttentionViT:
+    model_args = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, block_fn=RegisterCrossAttentionBlockV2)
+    model = _create_registercrossattentionvit('vit_base_patch16_reg4_ca_224', pretrained=pretrained, **dict(model_args, **kwargs))
+    return model
+    
+@register_model
 def vit_base_patch16_reg64var_ca_224(pretrained: bool = False, **kwargs) -> RegisterCrossAttentionViT:
     model_args = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, reg_tokens=64, variable_reg_token_count=True)
     model = _create_registercrossattentionvit('vit_base_patch16_reg4_ca_224', pretrained=pretrained, **dict(model_args, **kwargs))
