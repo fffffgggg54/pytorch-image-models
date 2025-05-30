@@ -1,6 +1,7 @@
 from .activations import *
 from .adaptive_avgmax_pool import \
     adaptive_avgmax_pool2d, select_adaptive_pool2d, AdaptiveAvgMaxPool2d, SelectAdaptivePool2d
+from .attention import Attention, AttentionRope
 from .attention2d import MultiQueryAttention2d, Attention2d, MultiQueryAttentionV2
 from .attention_pool import AttentionPoolLatent
 from .attention_pool2d import AttentionPool2d, RotAttentionPool2d, RotaryEmbedding
@@ -8,7 +9,8 @@ from .blur_pool import BlurPool2d, create_aa
 from .classifier import create_classifier, ClassifierHead, NormMlpClassifierHead, ClNormMlpClassifierHead
 from .cond_conv2d import CondConv2d, get_condconv_initializer
 from .config import is_exportable, is_scriptable, is_no_jit, use_fused_attn, \
-    set_exportable, set_scriptable, set_no_jit, set_layer_config, set_fused_attn
+    set_exportable, set_scriptable, set_no_jit, set_layer_config, set_fused_attn, \
+    set_reentrant_ckpt, use_reentrant_ckpt
 from .conv2d_same import Conv2dSame, conv2d_same
 from .conv_bn_act import ConvNormAct, ConvNormActAa, ConvBnAct
 from .create_act import create_act_layer, get_act_layer, get_act_fn
@@ -40,6 +42,7 @@ from .norm_act import BatchNormAct2d, GroupNormAct, GroupNorm1Act, LayerNormAct,
 from .padding import get_padding, get_same_padding, pad_same
 from .patch_dropout import PatchDropout
 from .patch_embed import PatchEmbed, PatchEmbedWithSize, resample_patch_embed
+from .pool1d import global_pool_nlc
 from .pool2d_same import AvgPool2dSame, create_pool2d
 from .pos_embed import resample_abs_pos_embed, resample_abs_pos_embed_nhwc
 from .pos_embed_rel import RelPosMlp, RelPosBias, RelPosBiasTf, gen_relative_position_index, gen_relative_log_coords, \
