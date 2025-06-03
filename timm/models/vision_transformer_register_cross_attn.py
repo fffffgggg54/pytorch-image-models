@@ -415,7 +415,7 @@ class MaskedRegisterAttentionBlock(nn.Module):
         B, C, H, W = x.shape
         _, K, _ = registers.shape
         x = x.flatten(2).transpose(1, 2) # BCHW -> BNC
-        x = x + self.drop_path1(self.ls1(self.token_mixer(self.norm1(x).transpose(1, 2).reshape(B, C, H, W))))
+        x = x + self.drop_path1(self.ls1(self.token_mixer(self.norm1(x).transpose(1, 2).reshape(B, C, H, W)).flatten(2).transpose(1, 2)))
         x = torch.cat((registers, x), dim=1)
         mask = torch.ones(K+H*W, K+H*W, dtype=torch.bool, device = x.device, requires_grad = False)
         mask[K:K+H*W, K:K+H*W] = False
