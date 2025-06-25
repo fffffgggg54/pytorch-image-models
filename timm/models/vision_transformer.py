@@ -4470,6 +4470,7 @@ def beit3_giant_patch14_336(pretrained: bool = False, **kwargs) -> VisionTransfo
 def vit_base_fast_and_focused_16x16_gap_224(pretrained: bool = False, **kwargs) -> VisionTransformer:
     model_args = dict(
         img_size=224, patch_size=16, embed_dim=768, depth=12, num_heads=12,
+        global_pool='avg',
         class_token = False,
         no_embed_class=True, 
         qkv_bias=False, 
