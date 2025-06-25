@@ -77,6 +77,90 @@ __all__ = ['VisionTransformer']  # model_registry will add each entrypoint fn to
 _logger = logging.getLogger(__name__)
 
 
+# VDP-related, move later
+
+class VDP(nn.Module):
+    def __init__(self, in_features, out_features, group_size, patch_size, feature_groups = 1):
+        super().__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        self.group_size = group_size
+        self.patch_size = patch_size
+        self.patch_count = group_size // patch_size
+        self.feature_groups = feature_groups
+
+        self.in_feature_group_size = in_features // feature_groups
+        self.out_feature_group_size = out_features // feature_groups
+        # TODO assert parameters
+        # TODO per-patch lora
+
+        self.weight = nn.Parameter(torch.randn(feature_groups, self.patch_count, self.patch_count, self.in_feature_group_size, patch_size, patch_size, self.out_feature_group_size) * 0.02)
+        self.bias = nn.Parameter(torch.randn(out_features, 1, self.patch_count, 1, self.patch_count) * 0.02)
+
+    def forward(self, x):
+        B, C, H, W = x.shape
+
+        # pad to multiple of group size
+        # via https://medium.com/aimonks/image-padding-to-nearest-multiple-in-pytorch-d92f9d17bbb7
+        padded_height = ((H + self.group_size - 1) // self.group_size) * self.group_size
+        padded_width = ((W + self.group_size - 1) // self.group_size) * self.group_size
+        pad_top = (padded_height - H) // 2
+        pad_bottom = padded_height - H - pad_top
+        pad_left = (padded_width - W) // 2
+        pad_right = padded_width - W - pad_left
+        x = F.pad(x, (pad_left, pad_right, pad_top, pad_bottom), mode='constant', value=0)
+
+        B, C, H, W = x.shape
+        groups_H = H // self.group_size
+        groups_W = W // self.group_size
+        x = x.reshape(B, self.feature_groups, self.in_feature_group_size, groups_H, self.patch_count, self.patch_size, groups_W, self.patch_count, self.patch_size)
+        x = torch.einsum("bgcumivnj,gmncijd->bgdumvn", x, self.weight)
+        x = x.flatten(1,2)
+        x = x + self.bias
+        x = x.flatten(4, 5).flatten(2, 3)
+        return x
+
+class VDPHead(nn.Module):
+    def __init__(self, img_size=224,
+        patch_size=16,
+        in_chans=3,
+        embed_dim=768,
+        bias=True,  # disable bias if pre-norm is used (e.g. CLIP)
+        dynamic_img_pad=False,
+        **kwargs,
+    ):
+        self.img_size = img_size
+        self.patch_size = patch_size
+        self.in_chans = in_chans
+        self.embed_dim = embed_dim
+        self.bias = bias
+        self.dynamic_img_pad = dynamic_img_pad
+        self.num_patches = (img_size // patch_size) ** 2
+        
+        self.FFN = nn.Sequential([
+            VDP(3, 64, 16, 4, feature_groups = 1),
+            nn.GELU(),
+            VDP(64, 64, 4, 1, feature_groups = 1),
+            nn.GELU(),
+            VDP(64, 256, 4, 2, feature_groups = 1),
+            nn.GELU(),
+            VDP(256, 256, 2, 1, feature_groups = 1),
+            nn.GELU(),
+            VDP(256, 1024, 2, 2, feature_groups = 4),
+            nn.GELU(),
+            VDP(1024, 1024, 1, 1, feature_groups = 1),
+        ])
+
+        self.proj = nn.Linear(1024, embed_dim)
+        self.norm = nn.LayerNorm(embed_dim)
+
+    def forward(self, x):
+        x = self.FFN(x).flatten(2).transpose(1, 2)
+        x = self.proj(x)
+        x = self.norm(x)
+        return x
+
+
 class LayerScale(nn.Module):
     """Layer scale module.
 
@@ -4379,6 +4463,20 @@ def beit3_giant_patch14_336(pretrained: bool = False, **kwargs) -> VisionTransfo
         norm_layer=partial(LayerNorm, eps=1e-5),
     )
     model = _create_vision_transformer('beit3_giant_patch14_336', pretrained=pretrained, **dict(model_args, **kwargs))
+    return model
+
+# VDP-related
+@register_model
+def vit_base_fast_and_focused_16x16_gap_224(pretrained: bool = False, **kwargs) -> VisionTransformer:
+    model_args = dict(
+        img_size=224, patch_size=16, embed_dim=768, depth=12, num_heads=12,
+        class_token = False,
+        no_embed_class=True, 
+        qkv_bias=False, 
+        init_values=1e-6, 
+        fc_norm=False,
+    )
+    model = _create_vision_transformer('vit_base_fast_and_focused_16x16_gap_224', pretrained=pretrained, **dict(model_args, **kwargs))
     return model
 
 
