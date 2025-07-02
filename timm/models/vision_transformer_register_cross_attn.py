@@ -601,6 +601,19 @@ def vit_base_patch16_reg16_masking_224(pretrained: bool = False, **kwargs) -> Re
     return model
 
 @register_model
+def vit_base_patch16_reg4_masking_224(pretrained: bool = False, **kwargs) -> RegisterCrossAttentionViT:
+    model_args = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, reg_tokens=4, variable_reg_token_count=True, block_fn=MaskedRegisterAttentionBlock)
+    model = _create_registercrossattentionvit('vit_base_patch16_reg4_masking_224', pretrained=pretrained, **dict(model_args, **kwargs))
+    return model
+
+@register_model
+def vit_base_patch16_reg1_masking_224(pretrained: bool = False, **kwargs) -> RegisterCrossAttentionViT:
+    model_args = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, reg_tokens=1, variable_reg_token_count=True, block_fn=MaskedRegisterAttentionBlock)
+    model = _create_registercrossattentionvit('vit_base_patch16_reg1_masking_224', pretrained=pretrained, **dict(model_args, **kwargs))
+    return model
+
+
+@register_model
 def vit_large_patch16_reg16_masking_224(pretrained: bool = False, **kwargs) -> RegisterCrossAttentionViT:
     model_args = dict(patch_size=16, embed_dim=1024, depth=24, num_heads=16, reg_tokens=16, variable_reg_token_count=True, block_fn=MaskedRegisterAttentionBlock)
     model = _create_registercrossattentionvit('vit_base_patch16_reg16_masking_224', pretrained=pretrained, **dict(model_args, **kwargs))
