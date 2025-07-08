@@ -114,6 +114,7 @@ class MaskingAttention(nn.Module):
                 attn_mask = mask,
             )
         else:
+            # FIXME not masking
             q = q * self.scale
             attn = q @ k.transpose(-2, -1)
             attn = attn.softmax(dim=-1)
