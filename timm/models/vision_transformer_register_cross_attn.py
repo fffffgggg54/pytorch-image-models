@@ -507,8 +507,8 @@ class RegisterCrossAttentionViT(VisionTransformer):
         x = self.norm_pre(x)
         H, W = self.patch_embed.dynamic_feat_size((H, W))
         # separate img and reg
-        x = x[:, -(H*W):, :] # [B, N, C]
         registers = x[:, :self.num_reg_tokens, :] # [B, K, C]
+        x = x[:, -(H*W):, :] # [B, N, C]
         x = x.transpose(1, 2).reshape(B, -1, H, W) # [B, N, C] -> [B, C, H, W]
         if self.grad_checkpointing and not torch.jit.is_scripting():
             x, registers = checkpoint_seq(self.blocks, (x, registers))
